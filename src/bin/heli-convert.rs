@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use heli_rust::{Model, ModelType};
+use heli_otr::{Model, ModelType};
 
 
 fn main() {

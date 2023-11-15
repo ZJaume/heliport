@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::thread;
 
-use heli_rust::Model;
+use heli_otr::Model;
 
 
 fn main() {

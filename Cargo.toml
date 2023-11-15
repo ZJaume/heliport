@@ -1,5 +1,5 @@
 [package]
-name = "HeLI-OTR"
+name = "heli-otr"
 version = "0.1.0"
 edition = "2021"
 
