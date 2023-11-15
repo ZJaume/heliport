@@ -3,6 +3,7 @@ use std::path::Path;
 use std::fs::{self, File};
 
 use bincode::{config, Decode, Encode};
+use log::{debug};
 
 #[derive(Encode, Decode, PartialEq, Debug)]
 pub enum ModelType {
@@ -19,7 +20,8 @@ pub struct Model {
 
 impl Model {
     // The following values are the ones used in Jauhiainen et al. 2017.
-    const MAX_USED : f32 = 0.0000005;
+    const MAX_USED : f64 = 0.0000005;
+
 
     pub fn from_text(lang_list_path: &Path, model_dir: &Path,
                      model_type: ModelType) -> Self {
@@ -74,10 +76,11 @@ impl Model {
             amount = parts[1].parse().expect(
                 format!("Error parsing line {i} in file {p:?}").as_str());
             // insert into the map
-            if (amount as f32 / num_features as f32) > Self::MAX_USED {
+            if (amount as f64 / num_features as f64) > Self::MAX_USED {
                 temp_dict.insert(String::from(parts[0]), amount);
                 langamount += amount;
             } else {
+                debug!("Lang {langcode} break in |{}| {}", parts[0], parts[1]);
                 break;
             }
         }
@@ -121,3 +124,50 @@ impl Model {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::thread;
+
+
+    #[test]
+    fn test_langs() {
+        let langlistpath = Path::new("./languagelist");
+        let modelpath = Path::new("./LanguageModels");
+        let wordmodel = Model::from_text(&langlistpath, &modelpath, ModelType::Word);
+        let path = Path::new("wordict.ser");
+        wordmodel.save(path);
+
+        let charmodel = Model::from_text(&langlistpath, &modelpath, ModelType::Char);
+        let path = Path::new("gramdict.ser");
+        charmodel.save(path);
+
+        let char_handle = thread::spawn(move || {
+            let path = Path::new("gramdict.ser");
+            Model::from_bin(path)
+        });
+
+        let word_handle = thread::spawn(move || {
+            let path = Path::new("wordict.ser");
+            Model::from_bin(path)
+        });
+
+        let word_model = word_handle.join().unwrap();
+        let char_model = char_handle.join().unwrap();
+
+        let expected = BTreeMap::from([
+            ("cat".to_string(), 3.4450269f32),
+            ("epo".to_string(), 4.5279417f32),
+            ("ext".to_string(), 2.5946937f32),
+            ("gla".to_string(), 4.7058706f32),
+            ("glg".to_string(), 2.3187783f32),
+            ("grn".to_string(), 2.9653773f32),
+            ("nhn".to_string(), 4.774119f32),
+            ("que".to_string(), 3.8074818f32),
+            ("spa".to_string(), 2.480955f32),
+        ]);
+
+        let probs = char_model.dic.get("ación").unwrap();
+        assert_eq!(probs, &expected);
+    }
+}
