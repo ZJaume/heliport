@@ -4,8 +4,8 @@ use heli_otr::{Model, ModelType};
 
 
 fn main() {
-    let langlistpath = Path::new("../heli-ots/languagelist");
-    let modelpath = Path::new("../heli-ots/LanguageModels");
+    let langlistpath = Path::new("./languagelist");
+    let modelpath = Path::new("./LanguageModels");
     let wordmodel = Model::from_text(&langlistpath, &modelpath, ModelType::Word);
     let path = Path::new("wordict.ser");
     wordmodel.save(path);

@@ -3,6 +3,7 @@ use std::path::Path;
 use std::fs::{self, File};
 
 use bincode::{config, Decode, Encode};
+use zstd::{Encoder, Decoder};
 use log::{debug};
 
 #[derive(Encode, Decode, PartialEq, Debug)]
@@ -58,9 +59,9 @@ impl Model {
             format!("Error reading file: {p:?}").as_str());
 
         let mut temp_dict = HashMap::new();
-        let mut num_features = 0_usize;
-        let mut amount: usize;
-        let mut langamount = 0_usize;
+        let mut num_features = 0_u64;
+        let mut amount: u64;
+        let mut langamount = 0_u64;
 
         // parse the language model file
         for (i, line) in modelfile.lines().enumerate() {
@@ -108,18 +109,20 @@ impl Model {
     // Create a new struct reading from a binary file
     pub fn from_bin(p: &Path) -> Self {
         let config = config::standard();
-        let mut file = File::open(p).expect(
+        let file = File::open(p).expect(
             format!("Error cannot open file {p:?}").as_str());
-        bincode::decode_from_std_read(&mut file, config)
+        let mut decoder = Decoder::new(file).unwrap();
+        bincode::decode_from_std_read(&mut decoder, config)
             .expect("Error decoding from binary file")
     }
 
     // Save the truct in binary format, then destroy it
     pub fn save(self, p: &Path) {
         let config = config::standard();
-        let mut file = File::create(p).expect(
+        let file = File::create(p).expect(
             format!("Error cannot write to file {p:?}").as_str());
-        let _ = bincode::encode_into_std_write(self, &mut file, config)
+        let mut encoder = Encoder::new(file, 3).unwrap().auto_finish();
+        let _ = bincode::encode_into_std_write(self, &mut encoder, config)
             .expect("Error encoding model to binary file");
     }
 }
@@ -155,6 +158,8 @@ mod tests {
         let word_model = word_handle.join().unwrap();
         let char_model = char_handle.join().unwrap();
 
+        // failing because original HeLI is using a java float
+        // instead of a double for accumulating frequencies
         let expected = BTreeMap::from([
             ("cat".to_string(), 3.4450269f32),
             ("epo".to_string(), 4.5279417f32),

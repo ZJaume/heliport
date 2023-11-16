@@ -18,6 +18,6 @@ fn main() {
     let word_model = word_handle.join().unwrap();
     let char_model = char_handle.join().unwrap();
 
-    let probs = char_model.dic.get("ación ").unwrap();
-    println!("{probs:?}");
+    // let probs = char_model.dic.get("ación ").unwrap();
+    // println!("{probs:?}");
 }
