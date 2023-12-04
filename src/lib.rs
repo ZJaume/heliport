@@ -1,18 +1,24 @@
 use std::collections::{BTreeMap, HashMap};
+use std::io::{Write, Read};
 use std::path::Path;
 use std::fs::{self, File};
 
-use bincode::{config, Decode, Encode};
+use rkyv::ser::{Serializer, serializers::AllocSerializer};
+use rkyv::{self, Archive, Deserialize, Serialize};
 use zstd::{Encoder, Decoder};
 use log::{debug};
 
-#[derive(Encode, Decode, PartialEq, Debug)]
+#[derive(Archive, Deserialize, Serialize, Debug, PartialEq)]
+#[archive(compare(PartialEq))]
+#[archive_attr(derive(Debug))]
 pub enum ModelType {
     Word,
     Char
 }
 
-#[derive(Encode, Decode, PartialEq, Debug)]
+#[derive(Archive, Deserialize, Serialize, Debug, PartialEq)]
+#[archive(compare(PartialEq))]
+#[archive_attr(derive(Debug))]
 pub struct Model {
     pub dic: BTreeMap<String, BTreeMap<String, f32>>,
     language_list: Vec<String>,
@@ -108,22 +114,28 @@ impl Model {
 
     // Create a new struct reading from a binary file
     pub fn from_bin(p: &Path) -> Self {
-        let config = config::standard();
-        let file = File::open(p).expect(
+        let mut file = File::open(p).expect(
             format!("Error cannot open file {p:?}").as_str());
-        let mut decoder = Decoder::new(file).unwrap();
-        bincode::decode_from_std_read(&mut decoder, config)
-            .expect("Error decoding from binary file")
+        let mut content = Vec::new();
+        let _ = file.read_to_end(&mut content).unwrap();
+
+        let archived = unsafe { rkyv::archived_root::<Self>(&content[..]) };
+        archived.deserialize(&mut rkyv::Infallible).unwrap()
     }
 
-    // Save the truct in binary format, then destroy it
+    // Save the struct in binary format
+    // take ownership of the struct
     pub fn save(self, p: &Path) {
-        let config = config::standard();
-        let file = File::create(p).expect(
+        // Create file
+        let mut file = File::create(p).expect(
             format!("Error cannot write to file {p:?}").as_str());
-        let mut encoder = Encoder::new(file, 3).unwrap().auto_finish();
-        let _ = bincode::encode_into_std_write(self, &mut encoder, config)
-            .expect("Error encoding model to binary file");
+
+        // Serialize in rkyv zero-copy serialization binary format
+        let mut serializer = AllocSerializer::<1024>::default();
+        serializer.serialize_value(&self).unwrap();
+        let serialized = serializer.into_serializer().into_inner();
+        // Write serialized bytes to the compressor
+        file.write_all(&serialized).expect("Error writing serialized model");
     }
 }
 
