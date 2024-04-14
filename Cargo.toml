@@ -9,5 +9,10 @@ edition = "2021"
 bincode = "2.0.0-rc.3"
 rkyv = "0.7"
 zstd = "0.13"
-log = { version = "0.4", features = ["max_level_debug", "release_max_level_info"]}
+regex = "1.10"
+unicode-blocks = "0.1.8"
+shingles = "0.1"
+ordered-float = "4.2"
+log = { version = "0.4", features = ["max_level_debug", "release_max_level_debug"]}
 env_logger = "0.10"
+test-log = "0.2.15"

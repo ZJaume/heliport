@@ -5,8 +5,9 @@ use std::fs::{self, File};
 
 use rkyv::ser::{Serializer, serializers::AllocSerializer};
 use rkyv::{self, Archive, Deserialize, Serialize};
-use zstd::{Encoder, Decoder};
 use log::{debug};
+
+pub mod identifier;
 
 #[derive(Archive, Deserialize, Serialize, Debug, PartialEq)]
 #[archive(compare(PartialEq))]
@@ -29,6 +30,9 @@ impl Model {
     // The following values are the ones used in Jauhiainen et al. 2017.
     const MAX_USED : f64 = 0.0000005;
 
+    pub fn contains(&self, key: &str) -> bool {
+        self.dic.contains_key(key)
+    }
 
     pub fn from_text(lang_list_path: &Path, model_dir: &Path,
                      model_type: ModelType) -> Self {
@@ -103,7 +107,7 @@ impl Model {
                 gram = format!(" {gram} ");
             }
             if self.dic.contains_key(&gram) {
-                let mut inner_map = self.dic.get_mut(&gram).unwrap();
+                let inner_map = self.dic.get_mut(&gram).unwrap();
                 inner_map.insert(langcode.clone(), prob);
             } else {
                 let inner_map = BTreeMap::from([(langcode.clone(), prob)]);
@@ -137,6 +141,7 @@ impl Model {
         // Write serialized bytes to the compressor
         file.write_all(&serialized).expect("Error writing serialized model");
     }
+
 }
 
 #[cfg(test)]
