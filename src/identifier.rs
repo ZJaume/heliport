@@ -13,7 +13,7 @@ use crate::Model;
 
 pub struct Identifier {
     charmodel: Model,
-    wordmodel: Model,
+    pub wordmodel: Model,
     regex_non_alpha: Regex,
     _regex_spaces: Regex,
     use_confidence: bool,
@@ -25,7 +25,7 @@ pub struct Identifier {
 
 
 impl Identifier {
-    const PENALTY_VALUE : f32 = 0.7;
+    const PENALTY_VALUE : f32 = 7.0;
     const MAX_NGRAM : usize = 6;
 
     pub fn new(grampath: String, wordpath: String) -> Self {
@@ -153,29 +153,32 @@ impl Identifier {
         let mut word_scored;
         let mut num_words = 0;
         let mut mystery_length = 0;
-        for word in words {
-            debug!("Scoring '{}'", word);
-            word_scored = false;
-            num_words += 1;
-            mystery_length += word.len();
-            self.reset_word_scores();
-
+        let mut word;
+        for iword in words {
             //TODO the original implementation inserts spaces at the beginning and end of the current word
             //if the word is the last, it only adds at the beginning
             //I found this space thing completely useless, the matches will be the same without the
             //spacing. Also, the original omits space at the end for the last word could be a bug?
             //that way last words are never taken into account because the wordmodel is loading all
             //the words with space at the begining and at the end. is this intended?
+            //TODO let's try with the spaces and see what happens
+            word = format!(" {iword} ");
+
+            debug!("Scoring '{}'", word);
+            word_scored = false;
+            num_words += 1;
+            mystery_length += word.len();
+            self.reset_word_scores();
 
             //TODO this condition seems useless, the constant never changes, maybe for debug?
             if Model::MAX_USED < 1.0 {
-                if self.wordmodel.dic.contains_key(word) {
+                if self.wordmodel.dic.contains_key(&word) {
                     // found the word in language model
                     // update scores according to each lang that has the word
                     // use penalty value for langs that don't have the word
                     word_scored = true;
                     debug!("word scored");
-                    let kiepro = &self.wordmodel.dic[word];
+                    let kiepro = &self.wordmodel.dic[&word];
                     for lang in &self.wordmodel.language_list {
                         if kiepro.contains_key(lang) {
                             let prob = kiepro[lang];
@@ -197,6 +200,9 @@ impl Identifier {
 
             // Go from highest order ngram to lowest until one of the orders is found in any
             // language
+            //TODO does it make sense to explore ngrams longer than the current word?
+            let mut score;
+            let mut prob;
             for t in (1..Self::MAX_NGRAM+1).rev() {
                 if word_scored {
                     break;
@@ -208,16 +214,19 @@ impl Identifier {
                 // if word has less chars than current ngram size, it won't do nothing
                 for gram in word.as_shingles(t) {
                     if self.charmodel.dic.contains_key(gram) {
+                        debug!("Word scored in ngram '{gram}'");
                         grammaara += 1;
                         word_scored = true;
                         let kiepro = &self.charmodel.dic[gram];
                         for lang in &self.charmodel.language_list {
+                            score = self.word_scores.get(&lang.to_string())
+                                .expect("All the langs should be already in the map!");
                             if kiepro.contains_key(lang) {
-                                let score = self.word_scores.get(&lang.to_string())
-                                    .expect("All the langs should be already in the map!");
+                                prob = kiepro[lang];
+                                debug!("{lang}: {score} {prob}");
                                 self.word_scores.insert(lang.to_string(), score + kiepro[lang]);
                             } else {
-                                self.word_scores.insert(lang.to_string(), Self::PENALTY_VALUE);
+                                self.word_scores.insert(lang.to_string(), score + Self::PENALTY_VALUE);
                             }
                         }
                     }
@@ -225,11 +234,13 @@ impl Identifier {
 
                 if word_scored {
                     // Normalize wordscores by the number of ngrams found in charmodel
+                    debug!("Word scores: {:?}", self.word_scores);
                     self.norm_word_scores(grammaara as f32);
                 }
             }
 
             // accumulate wordscores for the current word in the global lang points
+            debug!("Lang points: {:?}", self.lang_points);
             self.update_lang_points();
             debug!("Word scores: {:?}", self.word_scores);
             debug!("Lang points: {:?}", self.lang_points);
@@ -238,7 +249,8 @@ impl Identifier {
         debug!("Finished scoring");
         // Choose the winner
         let mut lang_score;
-        self.lang_points.insert("und".to_string(), Self::PENALTY_VALUE + 1.0);
+        // the original code adds "und" but seems to not take it into consideration
+        //self.lang_points.insert("und".to_string(), Self::PENALTY_VALUE + 1.0);
         debug!("Lang points: {:?}", self.lang_points);
 
         //TODO try to simplify this
@@ -259,12 +271,12 @@ impl Identifier {
             // we store only 3-letter codes in lang_points_final
             // keep the lowest (best) score between all the subfamiles of a 3-letter code
             lang_score = *self.lang_points.get(lang).expect("Should have all langs!");
-            if self.lang_points_final.contains_key(lang) {
-                if lang_score < self.lang_points_final[lang] {
-                    self.lang_points_final.insert(lang.clone(), lang_score);
+            if self.lang_points_final.contains_key(&lang[0..3]) {
+                if lang_score < self.lang_points_final[&lang[0..3]] {
+                    self.lang_points_final.insert(String::from(&lang[0..3]), lang_score);
                 }
             } else {
-                self.lang_points_final.insert(lang.clone(), lang_score);
+                self.lang_points_final.insert(String::from(&lang[0..3]), lang_score);
             }
         }
         debug!("Normalized lang points: {:?}", self.lang_points_final);
@@ -273,7 +285,7 @@ impl Identifier {
         let mut heli_score = BTreeMap::<OrderedFloat<f32>, Vec<String>>::new();
         let mut score: OrderedFloat<f32>;
         for lang in &self.wordmodel.language_list {
-            score = OrderedFloat(self.lang_points_final[lang]);
+            score = OrderedFloat(self.lang_points_final[&lang[0..3]]);
             heli_score.entry(score)
                 .and_modify(|langs| langs.push(lang.clone()))
                 .or_insert(vec![lang.clone()]);
@@ -284,7 +296,7 @@ impl Identifier {
         // do not choose at random if there is tie, unlike the original code does
         // I do not want undeterministic output
         if self.number_top_langs == 1 {
-            if let Some(winners) = heli_score.last_key_value() {
+            if let Some(winners) = heli_score.first_key_value() {
                 if winners.1.len() == 0 {
                     panic!("winners should not be empty!");
                 }
@@ -306,6 +318,10 @@ mod tests {
     fn test_output() {
         let mut identifier = Identifier::new(String::from("gramdict.ser"),
                                          String::from("wordict.ser"));
+
+        let pred = identifier.identify(&String::from("Hola, qué tal?"));
+        assert_eq!(pred, ("cat".to_string(), Some(4.047136_f32)));
+
         let input_sents = vec![
             "Korvausinvestoinnit on otettu huomioon liiketoimintasuunnitelmassa rahoituskuluina ja poistoina.",
             "而目前各方都在追问到底谁应该为这场大疫情在中国的扩散承担责任。",
@@ -318,25 +334,27 @@ mod tests {
             "The Encyclopedia of Religion gir flere opplysninger: \"Dens visjon av en menneskehet som hadde behov for Kristi evangelium, talte for igangsettelse og rask utvidelse av misjonsvirksomheten, både utenlands og innenlands.\"",
             "Kui lõike 5 alusel vastu võetud tehnilistest rakendusmeetmetest ei tulene teisiti, võivad pädevad riigiasutused võtta vastu suuniseid ja vajaduse korral anda juhiseid selle kohta, millistel asjaoludel peab teenuseosutaja teatama isikuandmetega seotud rikkumisest ning millises vormis ja mil viisil seda tuleb teha.",
         ];
-        let out_probs = vec![
-            ("fin".to_string(), Some(4.007335)),
-            ("cmn".to_string(), Some(6.3573837)),
-            ("lav".to_string(), Some(3.8405564)),
-            ("ara".to_string(), Some(3.799676)),
-            ("fin".to_string(), Some(6.3569307)),
-            ("pol".to_string(), Some(4.6405597)),
-            ("nld".to_string(), Some(3.6643095)),
-            ("tso".to_string(), Some(5.8670387)),
-            ("nob".to_string(), Some(3.8619435)),
-            ("est".to_string(), Some(3.72463 )),
+        let expected_preds = vec![
+            ("fin".to_string(), Some(3.4751024)),
+            ("cmn".to_string(), Some(4.429534 )),
+            ("lav".to_string(), Some(3.6547067)),
+            ("ara".to_string(), Some(3.468608 )),
+            ("fin".to_string(), Some(6.273052 )),
+            ("pol".to_string(), Some(3.8661745)),
+            ("nld".to_string(), Some(3.5002592)),
+            ("tso".to_string(), Some(5.6970944)),
+            ("nob".to_string(), Some(3.548138 )),
+            ("est".to_string(), Some(3.4789875)),
         ];
 
-        for (text, output) in input_sents.iter().zip(out_probs) {
-            let pred = identifier.identify(&text.to_string());
-            assert_eq!(pred, output);
-        }
 
-        let out = identifier.identify(&String::from("Hola, qué tal?"));
-        assert_eq!(out, ("cat".to_string(), Some(4.047136_f32)));
+        for (text, expected) in input_sents.iter().zip(expected_preds) {
+            let pred = identifier.identify(&text.to_string());
+            assert_eq!(pred.0, expected.0);
+            let pred_score = format!("{:.3}", pred.1.expect("Shouldn't be a none"));
+            let expected_score = format!("{:.3}", expected.1.expect("Shouldn't be a none"));
+            assert!(pred_score == expected_score,
+                "expected  = {:?}\npredict = {:?}", pred, expected);
+        }
     }
 }

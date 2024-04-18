@@ -73,6 +73,8 @@ impl Model {
         let mut amount: u64;
         let mut langamount = 0_u64;
 
+        debug!("Reading '{}'", p.display());
+
         // parse the language model file
         for (i, line) in modelfile.lines().enumerate() {
             // parse number of entries
@@ -103,7 +105,7 @@ impl Model {
         let mut prob;
         for (mut gram, amount) in temp_dict {
             prob = -(amount as f32 / langamount as f32).log10();
-            if p.ends_with("LowWordModel") {
+            if self.model_type == ModelType::Word {
                 gram = format!(" {gram} ");
             }
             if self.dic.contains_key(&gram) {
