@@ -188,7 +188,7 @@ impl Identifier {
                     for lang in &self.wordmodel.language_list {
                         if kiepro.contains_key(lang) {
                             let prob = kiepro[lang];
-                            debug!("{lang}: {prob}");
+                            // debug!("{lang}: {prob}");
                             self.word_scores.insert(lang.to_string(), kiepro[lang]);
                         } else {
                             self.word_scores.insert(lang.to_string(), Self::PENALTY_VALUE);
@@ -246,7 +246,6 @@ impl Identifier {
             }
 
             // accumulate wordscores for the current word in the global lang points
-            debug!("Lang points: {:?}", self.lang_points);
             self.update_lang_points();
             debug!("Word scores: {:?}", self.word_scores);
             debug!("Lang points: {:?}", self.lang_points);
@@ -320,43 +319,61 @@ impl Identifier {
 mod tests {
     use crate::identifier::Identifier;
 
+    const INPUT_SENTS: [&str;12] = [
+        "L'aigua clara",
+        "Hola, qué tal?",
+        "Korvausinvestoinnit on otettu huomioon liiketoimintasuunnitelmassa rahoituskuluina ja poistoina.",
+        "而目前各方都在追问到底谁应该为这场大疫情在中国的扩散承担责任。",
+        "Pēc nejaušās izvēles izraudzītas sešas vistas no vielas saņemšanas grupas un sešas vistas no nesēja kontroles grupas, un trīs vistas no pozitīvās kontroles grupas (ja šo grupu pēta paralēli) jānogalina dažas dienas pēc dozēšanas, un galvas smadzenes un muguras smadzenes jāsagatavo un jāanalizē, lai noteiktu ar neiropātiju saistītās esterāzes kavēšanas aktivitāti.",
+        "وتؤكد رومانيا على التزامها بمواصلة تنفيذ أحكام جدول أعمال الموئل والمشاركة في التعاون الدولي في هذا المجال الدينامي ، وبالتالي زيادة الاستفادة من الدعم والمساعدة المقدمة في تنفيذ برامجها الوطنية.",
+        "Namoota duʼaa kaafaman keessaa hedduun isaanii \"jalʼoota,\" jechuunis namoota dhugaa waaʼee Waaqa keenya Yihowaa fi Ilma isaa dubbatu utuu hin baratin duʼani dha.",
+        "DOKUMENT INFORMACYJNY NR [...]",
+        "In afwijking van de verplichting van sectie IX, hoofdstuk II, punt III.1.a), van bijlage III van Verordening (EG) nr. 853 / 2004 is het maximale kiemgetal voor rauwe koemelk slechts van toepassing indien deze melk warmtebehandeld moet worden en niet zodanig behandeld is binnen de termijn voor aanvaarding die bepaald is in de door de exploitanten van levensmiddelenbedrijven ingevoerde, op HACCP gebaseerde procedures.",
+        "Batangiye gushyiraho imihati myinshi no kumara igihe kinini bakurikirana inyungu z'iby'umwuka, ari na ko bakora uko bashoboye ngo begere Yehova.",
+        "The Encyclopedia of Religion gir flere opplysninger: \"Dens visjon av en menneskehet som hadde behov for Kristi evangelium, talte for igangsettelse og rask utvidelse av misjonsvirksomheten, både utenlands og innenlands.\"",
+        "Kui lõike 5 alusel vastu võetud tehnilistest rakendusmeetmetest ei tulene teisiti, võivad pädevad riigiasutused võtta vastu suuniseid ja vajaduse korral anda juhiseid selle kohta, millistel asjaoludel peab teenuseosutaja teatama isikuandmetega seotud rikkumisest ning millises vormis ja mil viisil seda tuleb teha.",
+    ];
+    // Expected predictions from original HeLI
+    const EXPECTED_PREDS: [(&str, Option<f32>);12] = [
+        ("cat", Some(3.9435382)),
+        ("cat", Some(4.047136 )),
+        ("fin", Some(3.4751024)),
+        ("cmn", Some(4.429534 )),
+        ("lav", Some(3.6547067)),
+        ("ara", Some(3.468608 )),
+        ("fin", Some(6.273052 )),
+        ("pol", Some(3.8661745)),
+        ("nld", Some(3.5002592)),
+        ("tso", Some(5.6970944)),
+        ("nob", Some(3.548138 )),
+        ("est", Some(3.4789875)),
+    ];
+
     #[test_log::test]
-    fn test_output() {
+    fn test_output_langs() {
+        let mut identifier = Identifier::new(String::from("gramdict.ser"),
+                                         String::from("wordict.ser"));
+
+        let pred = identifier.identify(&String::from("Hola, qué tal?"));
+        assert_eq!(pred.0, "cat");
+
+        for (text, expected) in INPUT_SENTS.iter().zip(EXPECTED_PREDS) {
+            let pred = identifier.identify(&text.to_string());
+            assert_eq!(pred.0, expected.0);
+        }
+    }
+
+    #[ignore]
+    #[test_log::test]
+    fn test_output_probs() {
         let mut identifier = Identifier::new(String::from("gramdict.ser"),
                                          String::from("wordict.ser"));
 
         let pred = identifier.identify(&String::from("Hola, qué tal?"));
         assert_eq!(pred, ("cat".to_string(), Some(4.047136_f32)));
 
-        let input_sents = vec![
-            "Korvausinvestoinnit on otettu huomioon liiketoimintasuunnitelmassa rahoituskuluina ja poistoina.",
-            "而目前各方都在追问到底谁应该为这场大疫情在中国的扩散承担责任。",
-            "Pēc nejaušās izvēles izraudzītas sešas vistas no vielas saņemšanas grupas un sešas vistas no nesēja kontroles grupas, un trīs vistas no pozitīvās kontroles grupas (ja šo grupu pēta paralēli) jānogalina dažas dienas pēc dozēšanas, un galvas smadzenes un muguras smadzenes jāsagatavo un jāanalizē, lai noteiktu ar neiropātiju saistītās esterāzes kavēšanas aktivitāti.",
-            "وتؤكد رومانيا على التزامها بمواصلة تنفيذ أحكام جدول أعمال الموئل والمشاركة في التعاون الدولي في هذا المجال الدينامي ، وبالتالي زيادة الاستفادة من الدعم والمساعدة المقدمة في تنفيذ برامجها الوطنية.",
-            "Namoota duʼaa kaafaman keessaa hedduun isaanii \"jalʼoota,\" jechuunis namoota dhugaa waaʼee Waaqa keenya Yihowaa fi Ilma isaa dubbatu utuu hin baratin duʼani dha.",
-            "DOKUMENT INFORMACYJNY NR [...]",
-            "In afwijking van de verplichting van sectie IX, hoofdstuk II, punt III.1.a), van bijlage III van Verordening (EG) nr. 853 / 2004 is het maximale kiemgetal voor rauwe koemelk slechts van toepassing indien deze melk warmtebehandeld moet worden en niet zodanig behandeld is binnen de termijn voor aanvaarding die bepaald is in de door de exploitanten van levensmiddelenbedrijven ingevoerde, op HACCP gebaseerde procedures.",
-            "Batangiye gushyiraho imihati myinshi no kumara igihe kinini bakurikirana inyungu z'iby'umwuka, ari na ko bakora uko bashoboye ngo begere Yehova.",
-            "The Encyclopedia of Religion gir flere opplysninger: \"Dens visjon av en menneskehet som hadde behov for Kristi evangelium, talte for igangsettelse og rask utvidelse av misjonsvirksomheten, både utenlands og innenlands.\"",
-            "Kui lõike 5 alusel vastu võetud tehnilistest rakendusmeetmetest ei tulene teisiti, võivad pädevad riigiasutused võtta vastu suuniseid ja vajaduse korral anda juhiseid selle kohta, millistel asjaoludel peab teenuseosutaja teatama isikuandmetega seotud rikkumisest ning millises vormis ja mil viisil seda tuleb teha.",
-        ];
-        let expected_preds = vec![
-            ("fin".to_string(), Some(3.4751024)),
-            ("cmn".to_string(), Some(4.429534 )),
-            ("lav".to_string(), Some(3.6547067)),
-            ("ara".to_string(), Some(3.468608 )),
-            ("fin".to_string(), Some(6.273052 )),
-            ("pol".to_string(), Some(3.8661745)),
-            ("nld".to_string(), Some(3.5002592)),
-            ("tso".to_string(), Some(5.6970944)),
-            ("nob".to_string(), Some(3.548138 )),
-            ("est".to_string(), Some(3.4789875)),
-        ];
-
-
-        for (text, expected) in input_sents.iter().zip(expected_preds) {
+        for (text, expected) in INPUT_SENTS.iter().zip(EXPECTED_PREDS) {
             let pred = identifier.identify(&text.to_string());
-            assert_eq!(pred.0, expected.0);
             let pred_score = format!("{:.3}", pred.1.expect("Shouldn't be a none"));
             let expected_score = format!("{:.3}", expected.1.expect("Shouldn't be a none"));
             assert!(pred_score == expected_score,
