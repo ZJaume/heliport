@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{HashMap};
 use std::io::{Write, Read};
 use std::path::Path;
 use std::fs::{self, File};
@@ -7,7 +7,10 @@ use rkyv::ser::{Serializer, serializers::AllocSerializer};
 use rkyv::{self, Archive, Deserialize, Serialize};
 use log::{debug};
 
+use crate::lang::Lang;
+
 pub mod identifier;
+pub mod lang;
 
 #[derive(Archive, Deserialize, Serialize, Debug, PartialEq)]
 #[archive(compare(PartialEq))]
@@ -17,12 +20,10 @@ pub enum ModelType {
     Char
 }
 
-#[derive(Archive, Deserialize, Serialize, Debug, PartialEq)]
-#[archive(compare(PartialEq))]
+#[derive(Archive, Deserialize, Serialize, Debug, )]
 #[archive_attr(derive(Debug))]
 pub struct Model {
-    pub dic: BTreeMap<String, BTreeMap<String, f32>>,
-    language_list: Vec<String>,
+    pub dic: HashMap<String, HashMap<Lang, f32>>,
     model_type: ModelType,
 }
 
@@ -36,34 +37,31 @@ impl Model {
 
     pub fn from_text(lang_list_path: &Path, model_dir: &Path,
                      model_type: ModelType) -> Self {
-        let language_list: Vec<String> = fs::read_to_string(lang_list_path).
-            unwrap().lines().map(|s| s.to_string()).collect();
         let mut model = Model {
-            dic: BTreeMap::new(),
-            language_list: Vec::new(),
+            dic: HashMap::new(),
             model_type: model_type
         };
 
         // Load each type of language model
-        for lang in &language_list {
+        for lang in Lang::iter() {
+            let lang_repr = lang.to_string().to_lowercase();
             if let ModelType::Char = model.model_type {
-                model.read_model(&model_dir.join(format!("{lang}.LowGramModel1")), lang);
-                model.read_model(&model_dir.join(format!("{lang}.LowGramModel2")), lang);
-                model.read_model(&model_dir.join(format!("{lang}.LowGramModel3")), lang);
-                model.read_model(&model_dir.join(format!("{lang}.LowGramModel4")), lang);
-                model.read_model(&model_dir.join(format!("{lang}.LowGramModel5")), lang);
-                model.read_model(&model_dir.join(format!("{lang}.LowGramModel6")), lang);
+                model.read_model(&model_dir.join(format!("{lang_repr}.LowGramModel1")), &lang);
+                model.read_model(&model_dir.join(format!("{lang_repr}.LowGramModel2")), &lang);
+                model.read_model(&model_dir.join(format!("{lang_repr}.LowGramModel3")), &lang);
+                model.read_model(&model_dir.join(format!("{lang_repr}.LowGramModel4")), &lang);
+                model.read_model(&model_dir.join(format!("{lang_repr}.LowGramModel5")), &lang);
+                model.read_model(&model_dir.join(format!("{lang_repr}.LowGramModel6")), &lang);
             } else {
-                model.read_model(&model_dir.join(format!("{lang}.LowWordModel")), lang);
+                model.read_model(&model_dir.join(format!("{lang_repr}.LowWordModel")), &lang);
             }
         }
 
         // we give language_list here, otherwise cannot call mutable borrow 'model.read_model' above
-        model.language_list = language_list;
         model
     }
 
-    fn read_model(&mut self, p: &Path, langcode: &String) {
+    fn read_model(&mut self, p: &Path, langcode: &Lang) {
         // Read the language model file to a string all at once
         let modelfile = fs::read_to_string(p).expect(
             format!("Error reading file: {p:?}").as_str());
@@ -112,7 +110,7 @@ impl Model {
                 let inner_map = self.dic.get_mut(&gram).unwrap();
                 inner_map.insert(langcode.clone(), prob);
             } else {
-                let inner_map = BTreeMap::from([(langcode.clone(), prob)]);
+                let inner_map = HashMap::from([(langcode.clone(), prob)]);
                 self.dic.insert(gram, inner_map);
             }
         }

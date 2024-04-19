@@ -5,11 +5,13 @@ use std::thread;
 use ordered_float::OrderedFloat;
 use itertools::Itertools;
 use shingles::AsShingles;
+use strum::EnumCount;
 use unicode_blocks;
 use regex::Regex;
 use log::{debug,warn};
 
 use crate::Model;
+use crate::lang::Lang;
 
 
 pub struct Identifier {
@@ -19,9 +21,10 @@ pub struct Identifier {
     _regex_spaces: Regex,
     use_confidence: bool,
     number_top_langs: u16,
-    lang_points: HashMap<String, f32>,
-    lang_points_final: HashMap<String, f32>,
-    word_scores: HashMap<String, f32>,
+    lang_points: HashMap<Lang, f32>,
+    lang_points_final: HashMap<Lang, f32>,
+    word_scores: HashMap<Lang, f32>,
+    heli_score: BTreeMap<OrderedFloat<f32>, Vec<Lang>>,
 }
 
 
@@ -44,10 +47,9 @@ impl Identifier {
         let charmodel = char_handle.join().unwrap();
 
         // both models must have the same languages
-        assert!(wordmodel.language_list == charmodel.language_list);
-        let mut lang_points: HashMap<String, f32> = HashMap::with_capacity(wordmodel.language_list.len());
-        let mut word_scores: HashMap<String, f32> = HashMap::with_capacity(wordmodel.language_list.len());
-        for lang in &wordmodel.language_list {
+        let mut lang_points: HashMap<Lang, f32> = HashMap::with_capacity(Lang::COUNT);
+        let mut word_scores: HashMap<Lang, f32> = HashMap::with_capacity(Lang::COUNT);
+        for lang in Lang::iter() {
             lang_points.insert(lang.clone(), 0.0);
             word_scores.insert(lang.clone(), 0.0);
         }
@@ -64,6 +66,7 @@ impl Identifier {
             lang_points_final: HashMap::with_capacity(lang_points.capacity()),
             lang_points: lang_points,
             word_scores: word_scores,
+            heli_score: BTreeMap::new(),
         }
     }
 
@@ -95,13 +98,14 @@ impl Identifier {
         }
     }
 
-    pub fn identify(&mut self, text: &String) -> (String, Option<f32>) {
+    pub fn identify(&mut self, text: &String) -> (Lang, Option<f32>) {
         // lowercase and remove non-alphabetic characters
         //TODO is it really remove all non alpha? because I found words with punctuation in
         //langmodel entries
         let lowercased = text.to_lowercase();
         let replaced = self.regex_non_alpha.replace_all(&lowercased, " ");
         self.lang_points_final.clear();
+        self.heli_score.clear();
 
         let mut last_was_cjk = false;
         let mut last_was_space = false;
@@ -113,7 +117,7 @@ impl Identifier {
                 Some(charset) => charset,
                 None => {
                     warn!("Could not find unicode block for '{}'", mystery_char);
-                    return (String::from("und"), Some(Self::PENALTY_VALUE));
+                    return (Lang::Und, Some(Self::PENALTY_VALUE));
                 }
             };
 
@@ -145,9 +149,9 @@ impl Identifier {
 
         if words.peek().is_none() {
             if self.use_confidence && self.number_top_langs == 1 {
-                return ("und".to_string(), Some(Self::PENALTY_VALUE));
+                return (Lang::Und, Some(Self::PENALTY_VALUE));
             } else {
-                return ("und".to_string(), None);
+                return (Lang::Und, None);
             }
         }
 
@@ -185,13 +189,13 @@ impl Identifier {
                     word_scored = true;
                     debug!("word scored");
                     let kiepro = &self.wordmodel.dic[&word];
-                    for lang in &self.wordmodel.language_list {
+                    for lang in Lang::iter() {
                         if kiepro.contains_key(lang) {
                             let prob = kiepro[lang];
                             // debug!("{lang}: {prob}");
-                            self.word_scores.insert(lang.to_string(), kiepro[lang]);
+                            self.word_scores.insert(lang.clone(), kiepro[lang]);
                         } else {
-                            self.word_scores.insert(lang.to_string(), Self::PENALTY_VALUE);
+                            self.word_scores.insert(lang.clone(), Self::PENALTY_VALUE);
                         }
                     }
                 }
@@ -224,15 +228,15 @@ impl Identifier {
                         grammaara += 1;
                         word_scored = true;
                         let kiepro = &self.charmodel.dic[gram];
-                        for lang in &self.charmodel.language_list {
-                            score = self.word_scores.get(&lang.to_string())
+                        for lang in Lang::iter() {
+                            score = self.word_scores.get(lang)
                                 .expect("All the langs should be already in the map!");
                             if kiepro.contains_key(lang) {
                                 prob = kiepro[lang];
                                 debug!("{lang}: {score} {prob}");
-                                self.word_scores.insert(lang.to_string(), score + kiepro[lang]);
+                                self.word_scores.insert(lang.clone(), score + kiepro[lang]);
                             } else {
-                                self.word_scores.insert(lang.to_string(), score + Self::PENALTY_VALUE);
+                                self.word_scores.insert(lang.clone(), score + Self::PENALTY_VALUE);
                             }
                         }
                     }
@@ -262,13 +266,13 @@ impl Identifier {
         // the CJK fix could just finish early?
         // keep two maps of scores to handle all that 3/6 letter codes seems unefficient
         // maybe can be done in a different way?
-        for lang in &self.wordmodel.language_list {
+        for lang in Lang::iter() {
             self.lang_points.insert(
                 lang.clone(),
                 self.lang_points[lang] / num_words as f32,
             );
             if (100 / mystery_length * cjk_num_chars) > 50 {
-                if lang != "jpn" && lang != "kor" && lang != "cmn" {
+                if !lang.is_cjk() {
                     self.lang_points_final.insert(lang.clone(), Self::PENALTY_VALUE + 1.0);
                 }
             }
@@ -287,21 +291,20 @@ impl Identifier {
         debug!("Normalized lang points: {:?}", self.lang_points_final);
 
         // Rank languages
-        let mut heli_score = BTreeMap::<OrderedFloat<f32>, Vec<String>>::new();
         let mut score: OrderedFloat<f32>;
-        for lang in &self.wordmodel.language_list {
+        for lang in Lang::iter() {
             score = OrderedFloat(self.lang_points_final[&lang[0..3]]);
-            heli_score.entry(score)
+            self.heli_score.entry(score)
                 .and_modify(|langs| langs.push(lang.clone()))
                 .or_insert(vec![lang.clone()]);
         }
-        debug!("Ranking: {:?}", heli_score);
+        debug!("Ranking: {:?}", self.heli_score);
 
         // return winner for top k = 1
         // do not choose at random if there is tie, unlike the original code does
         // I do not want undeterministic output
         if self.number_top_langs == 1 {
-            if let Some(winners) = heli_score.first_key_value() {
+            if let Some(winners) = self.heli_score.first_key_value() {
                 if winners.1.len() == 0 {
                     panic!("winners should not be empty!");
                 }
@@ -311,7 +314,7 @@ impl Identifier {
             }
         }
 
-        ("und".to_string(), None)
+        (Lang::Und, None)
     }
 }
 
