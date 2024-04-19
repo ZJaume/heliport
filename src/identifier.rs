@@ -3,6 +3,7 @@ use std::path::Path;
 use std::thread;
 
 use ordered_float::OrderedFloat;
+use itertools::Itertools;
 use shingles::AsShingles;
 use unicode_blocks;
 use regex::Regex;
@@ -116,7 +117,6 @@ impl Identifier {
 
             if unicode_blocks::is_cjk_block(charset) {
                 if !last_was_cjk && !last_was_space {
-                    mystery_text.push(mystery_char);
                     mystery_text.push(' ');
                 }
                 last_was_cjk = true;
@@ -133,9 +133,13 @@ impl Identifier {
             mystery_text.push(mystery_char);
         }
 
+        debug!("Mystery text: '{}'", mystery_text);
+        //debug!("Words: [{:?}]", mystery_text.split_whitespace().format(", "));
+
         // We don't need to remove repeated spaces
         // split_whitespace ignores them
         let mut words = mystery_text.split_whitespace().peekable();
+
 
         if words.peek().is_none() {
             if self.use_confidence && self.number_top_langs == 1 {
