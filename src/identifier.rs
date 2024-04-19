@@ -7,7 +7,7 @@ use itertools::Itertools;
 use shingles::AsShingles;
 use unicode_blocks;
 use regex::Regex;
-use log::{debug};
+use log::{debug,warn};
 
 use crate::Model;
 
@@ -111,8 +111,10 @@ impl Identifier {
         for mystery_char in replaced.chars() {
             let charset = match unicode_blocks::find_unicode_block(mystery_char) {
                 Some(charset) => charset,
-                        //TODO lang + score support
-                None => { return (String::from("und"), None); }
+                None => {
+                    warn!("Could not find unicode block for '{}'", mystery_char);
+                    return (String::from("und"), Some(Self::PENALTY_VALUE));
+                }
             };
 
             if unicode_blocks::is_cjk_block(charset) {
