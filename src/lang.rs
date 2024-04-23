@@ -15,12 +15,12 @@ pub enum Lang {
     Cnh, Cor, Cos, Cym, Dan, Deu, Diq, Div, Ell, Eng, Epo,
     Est, Eus, Ewe, Ext, Fao, Fij, Fin, Fini, Fink, Finl, Finm,
     Fino, Finp, Finr, Fins, Fint, Finx, Fra, Fry, Gla, Gle, Glg,
-    Glv, Gom, Grn, Gsw, Guj, Hat, Hbsbos, Hbshrv, Hbssrp, Heb, Hin,
+    Glv, Gom, Grn, Gsw, Guj, Hat, Hbs, Hbsbos, Hbshrv, Hbssrp, Heb, Hin,
     Hmo, Hsb, Hun, Hus, Huu, Hye, Ibo, Ido, Iku, Ilo, Ina,
     Isl, Ita, Izh, Jpn, Kal, Kan, Kat, Kaz, Kbd, Kbp, Kca,
     Khm, Kir, Koi, Kor, Kpv, Krc, Ksh, Lao, Lat, Lav, Lin,
     Lit, Liv, Lmo, Ltz, Lud, Lug, Lus, Mal, Mar, Mcd, Mcf,
-    Mdf, Mhr, Mkd, Mlg, Mlt, Mns, Mon, Mri, Mrj, Msaind, Msamin,
+    Mdf, Mhr, Mkd, Mlg, Mlt, Mns, Mon, Mri, Mrj, Msa, Msaind, Msamin,
     Msazsm, Mwl, Mya, Myv, Nav, Nep, Nhn, Nio, Nld, Nno, Nob,
     Nso, Oci, Olo, Ori, Oss, Pam, Pan, Pes, Pfl, Pli, Pms,
     Pnb, Pol, Pon, Por, Que, Roh, Ron, Rus, Sag, Sah, Scn,
@@ -33,9 +33,18 @@ pub enum Lang {
 }
 
 impl Lang {
-    pub fn is_cjk(self) -> bool {
-        self == Lang::Jpn || self == Lang::Kor || self == Lang::Cmn
+    pub fn is_cjk(&self) -> bool {
+        *self == Lang::Jpn || *self == Lang::Kor || *self == Lang::Cmn
     }
+
+    pub fn macrolang(&self) -> Self {
+        match self {
+            Fini | Fink | Finl | Finm | Fino | Finp | Finr | Fins | Fint | Finx => return Fin,
+            _ => self.clone(),
+        }
+    }
+
+    // iterator over all languages that have language models
     pub fn iter() -> Iter<'static, Lang> {
         static LANGS: [Lang; 214] = [
             Abk, Adz, Afr, Aii, Ame, Amh, Amr, Ara, Arl, Arn, Asm,
@@ -61,6 +70,8 @@ impl Lang {
             ];
         LANGS.iter()
     }
+
+    // iterator adding "und" tag
     pub fn iter_und() -> Iter<'static, Lang> {
         static LANGS: [Lang; 215] = [
             Abk, Adz, Afr, Aii, Ame, Amh, Amr, Ara, Arl, Arn, Asm,

@@ -266,6 +266,7 @@ impl Identifier {
         // the CJK fix could just finish early?
         // keep two maps of scores to handle all that 3/6 letter codes seems unefficient
         // maybe can be done in a different way?
+        let mut macro_lang: Lang;
         for lang in Lang::iter() {
             self.lang_points.insert(
                 lang.clone(),
@@ -280,20 +281,21 @@ impl Identifier {
             // we store only 3-letter codes in lang_points_final
             // keep the lowest (best) score between all the subfamiles of a 3-letter code
             lang_score = *self.lang_points.get(lang).expect("Should have all langs!");
-            if self.lang_points_final.contains_key(&lang[0..3]) {
-                if lang_score < self.lang_points_final[&lang[0..3]] {
-                    self.lang_points_final.insert(String::from(&lang[0..3]), lang_score);
+            macro_lang = lang.macrolang();
+            if self.lang_points_final.contains_key(&macro_lang) {
+                if lang_score < self.lang_points_final[&macro_lang] {
+                    self.lang_points_final.insert(macro_lang, lang_score);
                 }
             } else {
-                self.lang_points_final.insert(String::from(&lang[0..3]), lang_score);
+                self.lang_points_final.insert(macro_lang, lang_score);
             }
         }
         debug!("Normalized lang points: {:?}", self.lang_points_final);
 
         // Rank languages
         let mut score: OrderedFloat<f32>;
-        for lang in Lang::iter() {
-            score = OrderedFloat(self.lang_points_final[&lang[0..3]]);
+        for lang in self.lang_points_final.keys() {
+            score = OrderedFloat(self.lang_points_final[lang]);
             self.heli_score.entry(score)
                 .and_modify(|langs| langs.push(lang.clone()))
                 .or_insert(vec![lang.clone()]);
@@ -321,6 +323,7 @@ impl Identifier {
 #[cfg(test)]
 mod tests {
     use crate::identifier::Identifier;
+    use crate::lang::Lang;
 
     const INPUT_SENTS: [&str;12] = [
         "L'aigua clara",
@@ -337,19 +340,19 @@ mod tests {
         "Kui lõike 5 alusel vastu võetud tehnilistest rakendusmeetmetest ei tulene teisiti, võivad pädevad riigiasutused võtta vastu suuniseid ja vajaduse korral anda juhiseid selle kohta, millistel asjaoludel peab teenuseosutaja teatama isikuandmetega seotud rikkumisest ning millises vormis ja mil viisil seda tuleb teha.",
     ];
     // Expected predictions from original HeLI
-    const EXPECTED_PREDS: [(&str, Option<f32>);12] = [
-        ("cat", Some(3.9435382)),
-        ("cat", Some(4.047136 )),
-        ("fin", Some(3.4751024)),
-        ("cmn", Some(4.429534 )),
-        ("lav", Some(3.6547067)),
-        ("ara", Some(3.468608 )),
-        ("fin", Some(6.273052 )),
-        ("pol", Some(3.8661745)),
-        ("nld", Some(3.5002592)),
-        ("tso", Some(5.6970944)),
-        ("nob", Some(3.548138 )),
-        ("est", Some(3.4789875)),
+    const EXPECTED_PREDS: [(Lang, Option<f32>);12] = [
+        (Lang::Cat, Some(3.9435382)),
+        (Lang::Cat, Some(4.047136 )),
+        (Lang::Fin, Some(3.4751024)),
+        (Lang::Cmn, Some(4.429534 )),
+        (Lang::Lav, Some(3.6547067)),
+        (Lang::Ara, Some(3.468608 )),
+        (Lang::Fin, Some(6.273052 )),
+        (Lang::Pol, Some(3.8661745)),
+        (Lang::Nld, Some(3.5002592)),
+        (Lang::Tso, Some(5.6970944)),
+        (Lang::Nob, Some(3.548138 )),
+        (Lang::Est, Some(3.4789875)),
     ];
 
     #[test_log::test]
@@ -358,7 +361,7 @@ mod tests {
                                          String::from("wordict.ser"));
 
         let pred = identifier.identify(&String::from("Hola, qué tal?"));
-        assert_eq!(pred.0, "cat");
+        assert_eq!(pred.0, Lang::Cat);
 
         for (text, expected) in INPUT_SENTS.iter().zip(EXPECTED_PREDS) {
             let pred = identifier.identify(&text.to_string());
@@ -373,7 +376,7 @@ mod tests {
                                          String::from("wordict.ser"));
 
         let pred = identifier.identify(&String::from("Hola, qué tal?"));
-        assert_eq!(pred, ("cat".to_string(), Some(4.047136_f32)));
+        assert_eq!(pred, (Lang::Cat, Some(4.047136_f32)));
 
         for (text, expected) in INPUT_SENTS.iter().zip(EXPECTED_PREDS) {
             let pred = identifier.identify(&text.to_string());

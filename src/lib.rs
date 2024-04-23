@@ -177,16 +177,16 @@ mod tests {
 
         // failing because original HeLI is using a java float
         // instead of a double for accumulating frequencies
-        let expected = BTreeMap::from([
-            ("cat".to_string(), 3.4450269f32),
-            ("epo".to_string(), 4.5279417f32),
-            ("ext".to_string(), 2.5946937f32),
-            ("gla".to_string(), 4.7058706f32),
-            ("glg".to_string(), 2.3187783f32),
-            ("grn".to_string(), 2.9653773f32),
-            ("nhn".to_string(), 4.774119f32),
-            ("que".to_string(), 3.8074818f32),
-            ("spa".to_string(), 2.480955f32),
+        let expected = HashMap::from([
+            (Lang::Cat, 3.4450269f32),
+            (Lang::Epo, 4.5279417f32),
+            (Lang::Ext, 2.5946937f32),
+            (Lang::Gla, 4.7058706f32),
+            (Lang::Glg, 2.3187783f32),
+            (Lang::Grn, 2.9653773f32),
+            (Lang::Nhn, 4.774119f32),
+            (Lang::Que, 3.8074818f32),
+            (Lang::Spa, 2.480955f32),
         ]);
 
         let probs = char_model.dic.get("ación").unwrap();
