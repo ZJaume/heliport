@@ -16,6 +16,7 @@ ordered-float = "4.2"
 log = { version = "0.4", features = ["max_level_debug", "release_max_level_debug"]}
 env_logger = "0.10"
 strum = { version = "0.25", features = ["derive"] }
+fnv = "1.0"
 
 [dev-dependencies]
 test-log = "0.2.15"

@@ -1,10 +1,10 @@
-use std::collections::{HashMap};
 use std::io::{Write, Read};
 use std::path::Path;
 use std::fs::{self, File};
 
 use rkyv::ser::{Serializer, serializers::AllocSerializer};
 use rkyv::{self, Archive, Deserialize, Serialize};
+use fnv::{FnvHashMap};
 use log::{debug};
 
 use crate::lang::Lang;
@@ -23,7 +23,7 @@ pub enum ModelType {
 #[derive(Archive, Deserialize, Serialize, Debug, )]
 #[archive_attr(derive(Debug))]
 pub struct Model {
-    pub dic: HashMap<String, HashMap<Lang, f32>>,
+    pub dic: FnvHashMap<String, FnvHashMap<Lang, f32>>,
     model_type: ModelType,
 }
 
@@ -37,7 +37,7 @@ impl Model {
 
     pub fn from_text(model_dir: &Path, model_type: ModelType) -> Self {
         let mut model = Model {
-            dic: HashMap::new(),
+            dic: FnvHashMap::default(),
             model_type: model_type
         };
 
@@ -65,7 +65,7 @@ impl Model {
         let modelfile = fs::read_to_string(p).expect(
             format!("Error reading file: {p:?}").as_str());
 
-        let mut temp_dict = HashMap::new();
+        let mut temp_dict = FnvHashMap::default();
         let mut num_features = 0_u64;
         let mut amount: u64;
         let mut langamount = 0_u64;
@@ -109,7 +109,8 @@ impl Model {
                 let inner_map = self.dic.get_mut(&gram).unwrap();
                 inner_map.insert(langcode.clone(), prob);
             } else {
-                let inner_map = HashMap::from([(langcode.clone(), prob)]);
+                let mut inner_map = FnvHashMap::default();
+                inner_map.insert(langcode.clone(), prob);
                 self.dic.insert(gram, inner_map);
             }
         }
@@ -147,6 +148,7 @@ impl Model {
 mod tests {
     use super::*;
     use std::thread;
+    use std::collections::HashMap;
 
 
     #[test]
