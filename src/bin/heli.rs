@@ -1,6 +1,6 @@
 use std::io::{self, BufRead};
 
-use log::{info, debug};
+// use log::{info, debug};
 use env_logger::Env;
 
 use heli_otr::identifier::Identifier;

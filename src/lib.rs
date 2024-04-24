@@ -35,8 +35,7 @@ impl Model {
         self.dic.contains_key(key)
     }
 
-    pub fn from_text(lang_list_path: &Path, model_dir: &Path,
-                     model_type: ModelType) -> Self {
+    pub fn from_text(model_dir: &Path, model_type: ModelType) -> Self {
         let mut model = Model {
             dic: HashMap::new(),
             model_type: model_type

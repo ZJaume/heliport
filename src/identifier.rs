@@ -3,7 +3,6 @@ use std::path::Path;
 use std::thread;
 
 use ordered_float::OrderedFloat;
-use itertools::Itertools;
 use shingles::AsShingles;
 use strum::EnumCount;
 use unicode_blocks;
@@ -191,8 +190,6 @@ impl Identifier {
                     let kiepro = &self.wordmodel.dic[&word];
                     for lang in Lang::iter() {
                         if kiepro.contains_key(lang) {
-                            let prob = kiepro[lang];
-                            // debug!("{lang}: {prob}");
                             self.word_scores.insert(lang.clone(), kiepro[lang]);
                         } else {
                             self.word_scores.insert(lang.clone(), Self::PENALTY_VALUE);
@@ -212,7 +209,6 @@ impl Identifier {
             // language
             //TODO does it make sense to explore ngrams longer than the current word?
             let mut score;
-            let mut prob;
             for t in (1..Self::MAX_NGRAM+1).rev() {
                 if word_scored {
                     break;
@@ -232,8 +228,6 @@ impl Identifier {
                             score = self.word_scores.get(lang)
                                 .expect("All the langs should be already in the map!");
                             if kiepro.contains_key(lang) {
-                                prob = kiepro[lang];
-                                debug!("{lang}: {score} {prob}");
                                 self.word_scores.insert(lang.clone(), score + kiepro[lang]);
                             } else {
                                 self.word_scores.insert(lang.clone(), score + Self::PENALTY_VALUE);
