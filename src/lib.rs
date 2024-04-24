@@ -153,13 +153,12 @@ mod tests {
 
     #[test]
     fn test_langs() {
-        let langlistpath = Path::new("./languagelist");
         let modelpath = Path::new("./LanguageModels");
-        let wordmodel = Model::from_text(&langlistpath, &modelpath, ModelType::Word);
+        let wordmodel = Model::from_text(&modelpath, ModelType::Word);
         let path = Path::new("wordict.ser");
         wordmodel.save(path);
 
-        let charmodel = Model::from_text(&langlistpath, &modelpath, ModelType::Char);
+        let charmodel = Model::from_text(&modelpath, ModelType::Char);
         let path = Path::new("gramdict.ser");
         charmodel.save(path);
 
@@ -173,22 +172,21 @@ mod tests {
             Model::from_bin(path)
         });
 
-        let word_model = word_handle.join().unwrap();
+        // let word_model = word_handle.join().unwrap();
         let char_model = char_handle.join().unwrap();
 
         // failing because original HeLI is using a java float
         // instead of a double for accumulating frequencies
-        let expected = HashMap::from([
-            (Lang::Cat, 3.4450269f32),
-            (Lang::Epo, 4.5279417f32),
-            (Lang::Ext, 2.5946937f32),
-            (Lang::Gla, 4.7058706f32),
-            (Lang::Glg, 2.3187783f32),
-            (Lang::Grn, 2.9653773f32),
-            (Lang::Nhn, 4.774119f32),
-            (Lang::Que, 3.8074818f32),
-            (Lang::Spa, 2.480955f32),
-        ]);
+        let mut expected = HashMap::default();
+        expected.insert(Lang::Cat, 3.4450269f32);
+        expected.insert(Lang::Epo, 4.5279417f32);
+        expected.insert(Lang::Ext, 2.5946937f32);
+        expected.insert(Lang::Gla, 4.7058706f32);
+        expected.insert(Lang::Glg, 2.3187783f32);
+        expected.insert(Lang::Grn, 2.9653773f32);
+        expected.insert(Lang::Nhn, 4.774119f32);
+        expected.insert(Lang::Que, 3.8074818f32);
+        expected.insert(Lang::Spa, 2.480955f32);
 
         let probs = char_model.dic.get("ación").unwrap();
         assert_eq!(probs, &expected);
