@@ -1,10 +1,11 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::thread;
 
 use ordered_float::OrderedFloat;
 use shingles::AsShingles;
 use strum::EnumCount;
+use fnv::FnvHashMap;
 use unicode_blocks;
 use regex::Regex;
 use log::{debug,warn};
@@ -20,9 +21,9 @@ pub struct Identifier {
     _regex_spaces: Regex,
     use_confidence: bool,
     number_top_langs: u16,
-    lang_points: HashMap<Lang, f32>,
-    lang_points_final: HashMap<Lang, f32>,
-    word_scores: HashMap<Lang, f32>,
+    lang_points: FnvHashMap<Lang, f32>,
+    lang_points_final: FnvHashMap<Lang, f32>,
+    word_scores: FnvHashMap<Lang, f32>,
     heli_score: BTreeMap<OrderedFloat<f32>, Vec<Lang>>,
 }
 
@@ -46,8 +47,10 @@ impl Identifier {
         let charmodel = char_handle.join().unwrap();
 
         // both models must have the same languages
-        let mut lang_points: HashMap<Lang, f32> = HashMap::with_capacity(Lang::COUNT);
-        let mut word_scores: HashMap<Lang, f32> = HashMap::with_capacity(Lang::COUNT);
+        let mut lang_points: FnvHashMap<Lang, f32> = FnvHashMap::with_capacity_and_hasher(
+            Lang::COUNT, Default::default());
+        let mut word_scores: FnvHashMap<Lang, f32> = FnvHashMap::with_capacity_and_hasher(
+            Lang::COUNT, Default::default());
         for lang in Lang::iter() {
             lang_points.insert(lang.clone(), 0.0);
             word_scores.insert(lang.clone(), 0.0);
@@ -62,7 +65,7 @@ impl Identifier {
             _regex_spaces: Regex::new("  *").expect("Error compiling repeated spaces regex for Identifier"),
             use_confidence: false,
             number_top_langs: 1,
-            lang_points_final: HashMap::with_capacity(lang_points.capacity()),
+            lang_points_final: FnvHashMap::with_capacity_and_hasher(lang_points.capacity(), Default::default()),
             lang_points: lang_points,
             word_scores: word_scores,
             heli_score: BTreeMap::new(),
