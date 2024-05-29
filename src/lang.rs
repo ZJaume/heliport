@@ -4,7 +4,7 @@ use strum::{EnumString, EnumCount, Display};
 use self::Lang::*;
 use std::slice::Iter;
 
-#[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Eq, Hash, Clone,
+#[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Eq, Hash, Clone, Copy,
          Display, EnumCount, EnumString)]
 #[archive_attr(derive(Debug, PartialEq, Eq, Hash))]
 #[repr(u8)]
@@ -101,11 +101,46 @@ impl Lang {
 
 }
 
-// impl FromStr for Lang {
-//     type Err = ();
+/**
+ * Simple vector to store scores of each language
+ * as fast alternative to a hashmap<lang, f32> if all or almost all languges have to be stored
+ * it takes advantage of underlying u8 representation of the Lang enum
+ */
+#[derive(Debug)]
+pub struct LangScores {
+    inner: [f32; Lang::COUNT],
+}
 
-//     fn from_str(input: &str) -> Result<Lang, Self::Err> {
-//         match input {
-//         }
-//     }
-// }
+impl LangScores {
+    pub fn new() -> Self {
+        Self { inner: [0.0; Lang::COUNT] }
+    }
+
+    pub fn get(&self, lang: &Lang) -> f32 {
+        self.inner[*lang as usize]
+    }
+
+    pub fn insert(&mut self, lang: Lang, score: f32) {
+        self.inner[lang as usize] = score;
+    }
+
+    pub fn add(&mut self, other: &Self) {
+        for i in 0..Lang::COUNT {
+            self.inner[i] += other.inner[i];
+        }
+    }
+
+    // Normalize scores dividing by a given value
+    pub fn norm(&mut self, y: f32) {
+        for i in 0..Lang::COUNT {
+            self.inner[i] /= y;
+        }
+    }
+
+    // Reset all values to 0
+    pub fn reset(&mut self) {
+        for i in 0..Lang::COUNT {
+            self.inner[i] = 0.0;
+        }
+    }
+}

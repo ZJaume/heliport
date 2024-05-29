@@ -4,14 +4,12 @@ use std::thread;
 
 use ordered_float::OrderedFloat;
 use shingles::AsShingles;
-use strum::EnumCount;
-use fnv::FnvHashMap;
 use unicode_blocks;
 use regex::Regex;
 use log::{debug,warn};
 
 use crate::Model;
-use crate::lang::Lang;
+use crate::lang::{Lang,LangScores};
 
 
 pub struct Identifier {
@@ -21,9 +19,9 @@ pub struct Identifier {
     _regex_spaces: Regex,
     use_confidence: bool,
     number_top_langs: u16,
-    lang_points: FnvHashMap<Lang, f32>,
-    lang_points_final: FnvHashMap<Lang, f32>,
-    word_scores: FnvHashMap<Lang, f32>,
+    lang_points: LangScores,
+    lang_points_final: LangScores,
+    word_scores: LangScores,
     heli_score: BTreeMap<OrderedFloat<f32>, Vec<Lang>>,
 }
 
@@ -46,18 +44,6 @@ impl Identifier {
         let wordmodel = word_handle.join().unwrap();
         let charmodel = char_handle.join().unwrap();
 
-        // both models must have the same languages
-        let mut lang_points: FnvHashMap<Lang, f32> = FnvHashMap::with_capacity_and_hasher(
-            Lang::COUNT, Default::default());
-        let mut word_scores: FnvHashMap<Lang, f32> = FnvHashMap::with_capacity_and_hasher(
-            Lang::COUNT, Default::default());
-        for lang in Lang::iter() {
-            lang_points.insert(lang.clone(), 0.0);
-            word_scores.insert(lang.clone(), 0.0);
-        }
-        word_scores.shrink_to_fit();
-        lang_points.shrink_to_fit();
-
         Self {
             charmodel: charmodel,
             wordmodel: wordmodel,
@@ -65,38 +51,10 @@ impl Identifier {
             _regex_spaces: Regex::new("  *").expect("Error compiling repeated spaces regex for Identifier"),
             use_confidence: false,
             number_top_langs: 1,
-            lang_points_final: FnvHashMap::with_capacity_and_hasher(lang_points.capacity(), Default::default()),
-            lang_points: lang_points,
-            word_scores: word_scores,
+            lang_points_final: LangScores::new(),
+            lang_points: LangScores::new(),
+            word_scores: LangScores::new(),
             heli_score: BTreeMap::new(),
-        }
-    }
-
-    // Normalize word scores dividing by a given value
-    fn norm_word_scores(&mut self, y: f32) {
-        for (_, x) in self.word_scores.iter_mut() {
-            *x = *x / y;
-        }
-    }
-
-    // Reset all word scores to 0
-    fn reset_word_scores(&mut self) {
-        for (_, val) in self.word_scores.iter_mut() {
-            *val = 0.0;
-        }
-    }
-
-    // Reset all lang points to 0
-    fn reset_lang_points(&mut self) {
-        for (_, val) in self.lang_points.iter_mut() {
-            *val = 0.0;
-        }
-    }
-
-    // Update lang points by ading current word scores
-    fn update_lang_points(&mut self) {
-        for (lang, val) in self.lang_points.iter_mut() {
-            *val += self.word_scores.get(lang).expect("Lang keys should be the same on both maps!");
         }
     }
 
@@ -106,7 +64,7 @@ impl Identifier {
         //langmodel entries
         let lowercased = text.to_lowercase();
         let replaced = self.regex_non_alpha.replace_all(&lowercased, " ");
-        self.lang_points_final.clear();
+        self.lang_points_final.reset();
         self.heli_score.clear();
 
         let mut last_was_cjk = false;
@@ -157,10 +115,7 @@ impl Identifier {
             }
         }
 
-        //TODO can this speed up if are class member variables and allocated only once?
-        //will that be possible if we want to do multiple parallel calls to this function?
-        //let lang_scores = vec![0.0; self.wordmodel.language_list.len()];
-        self.reset_lang_points();
+        self.lang_points.reset();
 
         let mut word_scored;
         let mut num_words = 0;
@@ -180,7 +135,7 @@ impl Identifier {
             word_scored = false;
             num_words += 1;
             mystery_length += word.len();
-            self.reset_word_scores();
+            self.word_scores.reset();
 
             //TODO this condition seems useless, the constant never changes, maybe for debug?
             if Model::MAX_USED < 1.0 {
@@ -205,7 +160,7 @@ impl Identifier {
             //so it is still at 0 because it was reset at the beginning of the iteration
             if !word_scored {
                 debug!("Word has not been found");
-                self.reset_word_scores();
+                self.word_scores.reset();
             }
 
             // Go from highest order ngram to lowest until one of the orders is found in any
@@ -228,8 +183,7 @@ impl Identifier {
                         word_scored = true;
                         let kiepro = &self.charmodel.dic[gram];
                         for lang in Lang::iter() {
-                            score = self.word_scores.get(lang)
-                                .expect("All the langs should be already in the map!");
+                            score = self.word_scores.get(lang);
                             if kiepro.contains_key(lang) {
                                 self.word_scores.insert(lang.clone(), score + kiepro[lang]);
                             } else {
@@ -242,19 +196,18 @@ impl Identifier {
                 if word_scored {
                     // Normalize wordscores by the number of ngrams found in charmodel
                     debug!("Word scores: {:?}", self.word_scores);
-                    self.norm_word_scores(grammaara as f32);
+                    self.word_scores.norm(grammaara as f32);
                 }
             }
 
             // accumulate wordscores for the current word in the global lang points
-            self.update_lang_points();
+            self.lang_points.add(&self.word_scores);
             debug!("Word scores: {:?}", self.word_scores);
             debug!("Lang points: {:?}", self.lang_points);
         }
 
         debug!("Finished scoring");
         // Choose the winner
-        let mut lang_score;
         // the original code adds "und" but seems to not take it into consideration
         //self.lang_points.insert("und".to_string(), Self::PENALTY_VALUE + 1.0);
         debug!("Lang points: {:?}", self.lang_points);
@@ -264,38 +217,36 @@ impl Identifier {
         // keep two maps of scores to handle all that 3/6 letter codes seems unefficient
         // maybe can be done in a different way?
         let mut macro_lang: Lang;
+        // self.lang_points.norm(num_words as f32);
         for lang in Lang::iter() {
-            self.lang_points.insert(
-                lang.clone(),
-                self.lang_points[lang] / num_words as f32,
-            );
+            let lang_score_norm = self.lang_points.get(lang) / num_words as f32;
+            self.lang_points_final.insert(*lang, lang_score_norm);
+
             if (100 / mystery_length * cjk_num_chars) > 50 {
                 if !lang.is_cjk() {
-                    self.lang_points_final.insert(lang.clone(), Self::PENALTY_VALUE + 1.0);
+                    self.lang_points_final.insert(*lang, Self::PENALTY_VALUE + 1.0);
                 }
             }
 
-            // we store only 3-letter codes in lang_points_final
-            // keep the lowest (best) score between all the subfamiles of a 3-letter code
-            lang_score = *self.lang_points.get(lang).expect("Should have all langs!");
+            // we store in the 3-letter codes (macrolang) the highest of the individual codes
             macro_lang = lang.macrolang();
-            if self.lang_points_final.contains_key(&macro_lang) {
-                if lang_score < self.lang_points_final[&macro_lang] {
-                    self.lang_points_final.insert(macro_lang, lang_score);
-                }
-            } else {
-                self.lang_points_final.insert(macro_lang, lang_score);
+            if lang_score_norm < self.lang_points_final.get(&macro_lang) {
+                self.lang_points_final.insert(macro_lang, lang_score_norm);
             }
         }
+        debug!("Normalized lang points: {:?}", self.lang_points);
         debug!("Normalized lang points: {:?}", self.lang_points_final);
 
         // Rank languages
         let mut score: OrderedFloat<f32>;
-        for lang in self.lang_points_final.keys() {
-            score = OrderedFloat(self.lang_points_final[lang]);
+        for lang in Lang::iter() { //TODO should add "und"?
+            //TODO should create an iterator that does not include variants, so the hack is not
+            //necessary
+            macro_lang = lang.macrolang(); // hack because we are suposed to visit only macros
+            score = OrderedFloat(self.lang_points_final.get(&macro_lang));
             self.heli_score.entry(score)
-                .and_modify(|langs| langs.push(lang.clone()))
-                .or_insert(vec![lang.clone()]);
+                .and_modify(|langs| langs.push(macro_lang.clone()))
+                .or_insert(vec![macro_lang.clone()]);
         }
         debug!("Ranking: {:?}", self.heli_score);
 
