@@ -1,11 +1,15 @@
+use std::collections::HashMap;
+use std::hash::BuildHasherDefault;
 use std::io::{Write, Read};
 use std::path::Path;
 use std::fs::{self, File};
 
 use rkyv::ser::{Serializer, serializers::AllocSerializer};
 use rkyv::{self, Archive, Deserialize, Serialize};
-use fnv::{FnvHashMap};
 use log::{debug};
+
+use wyhash2::WyHash;
+type MyHasher = BuildHasherDefault<WyHash>;
 
 use crate::lang::Lang;
 
@@ -20,10 +24,11 @@ pub enum ModelType {
     Char
 }
 
+
 #[derive(Archive, Deserialize, Serialize, Debug, )]
 #[archive_attr(derive(Debug))]
 pub struct Model {
-    pub dic: FnvHashMap<String, FnvHashMap<Lang, f32>>,
+    pub dic: HashMap<String, HashMap<Lang, f32, MyHasher>, MyHasher>,
     model_type: ModelType,
 }
 
@@ -37,7 +42,7 @@ impl Model {
 
     pub fn from_text(model_dir: &Path, model_type: ModelType) -> Self {
         let mut model = Model {
-            dic: FnvHashMap::default(),
+            dic: HashMap::default(),
             model_type: model_type
         };
 
@@ -65,7 +70,7 @@ impl Model {
         let modelfile = fs::read_to_string(p).expect(
             format!("Error reading file: {p:?}").as_str());
 
-        let mut temp_dict = FnvHashMap::default();
+        let mut temp_dict: HashMap<_, _, MyHasher> = HashMap::default();
         let mut num_features = 0_u64;
         let mut amount: u64;
         let mut langamount = 0_u64;
@@ -109,7 +114,7 @@ impl Model {
                 let inner_map = self.dic.get_mut(&gram).unwrap();
                 inner_map.insert(langcode.clone(), prob);
             } else {
-                let mut inner_map = FnvHashMap::default();
+                let mut inner_map = HashMap::default();
                 inner_map.insert(langcode.clone(), prob);
                 self.dic.insert(gram, inner_map);
             }
