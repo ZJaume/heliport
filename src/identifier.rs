@@ -162,7 +162,7 @@ impl Identifier {
             debug!("Scoring '{}'", word);
             word_scored = false;
             num_words += 1;
-            mystery_length += word.len();
+            mystery_length += word.chars().count(); //TODO move this to the cjk count above? .chars() iterator is expensive
             self.word_scores.reset();
 
             //TODO this condition seems useless, the constant never changes, maybe for debug?
