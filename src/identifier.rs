@@ -20,7 +20,6 @@ pub struct Identifier {
     use_confidence: bool,
     number_top_langs: u16,
     lang_points: LangScores,
-    lang_points_final: LangScores,
     word_scores: LangScores,
     heli_score: BTreeMap<OrderedFloat<f32>, Vec<Lang>>,
 }
@@ -51,11 +50,41 @@ impl Identifier {
             _regex_spaces: Regex::new("  *").expect("Error compiling repeated spaces regex for Identifier"),
             use_confidence: false,
             number_top_langs: 1,
-            lang_points_final: LangScores::new(),
             lang_points: LangScores::new(),
             word_scores: LangScores::new(),
             heli_score: BTreeMap::new(),
         }
+    }
+
+    // Compute the ranking of languages
+    fn rank_langs(&mut self) -> (Lang, Option<f32>) {
+        let mut winner_tuple;
+        // if only one lang is requested, just search for the minimum score (winner)
+        if self.number_top_langs == 1 {
+            let mut min = Self::PENALTY_VALUE + 1.0;
+            let mut winner_lang = Lang::Und;
+
+            for lang in Lang::iter() {
+                let points = self.lang_points.get(lang);
+                if points <= min {
+                    min = points;
+                    winner_lang = *lang;
+                }
+            }
+
+            winner_tuple =  (winner_lang, Some(min));
+        }
+        else {
+            //TODO do the actual ranking here, maybe btree is still the fastest way
+            // maybe a heap of tuples is faster
+            // we also do not need a btree<lang, vec>, if there are ties is fine if its
+            // deterministic
+            unimplemented!("Top k larger than 1 is not implemented");
+        }
+
+        // return macrolang (aka return finnish instead of variants)
+        winner_tuple.0 = winner_tuple.0.macrolang();
+        winner_tuple
     }
 
     pub fn identify(&mut self, text: &String) -> (Lang, Option<f32>) {
@@ -64,7 +93,6 @@ impl Identifier {
         //langmodel entries
         let lowercased = text.to_lowercase();
         let replaced = self.regex_non_alpha.replace_all(&lowercased, " ");
-        self.lang_points_final.reset();
         self.heli_score.clear();
 
         let mut last_was_cjk = false;
@@ -212,59 +240,22 @@ impl Identifier {
         //self.lang_points.insert("und".to_string(), Self::PENALTY_VALUE + 1.0);
         debug!("Lang points: {:?}", self.lang_points);
 
+        // Normalize lang points and apply penalties if more than 50% is CJK
         //TODO try to simplify this
         // the CJK fix could just finish early?
-        // keep two maps of scores to handle all that 3/6 letter codes seems unefficient
-        // maybe can be done in a different way?
-        let mut macro_lang: Lang;
-        // self.lang_points.norm(num_words as f32);
         for lang in Lang::iter() {
             let lang_score_norm = self.lang_points.get(lang) / num_words as f32;
-            self.lang_points_final.insert(*lang, lang_score_norm);
+            self.lang_points.insert(*lang, lang_score_norm);
 
             if (100 / mystery_length * cjk_num_chars) > 50 {
                 if !lang.is_cjk() {
-                    self.lang_points_final.insert(*lang, Self::PENALTY_VALUE + 1.0);
+                    self.lang_points.insert(*lang, Self::PENALTY_VALUE + 1.0);
                 }
-            }
-
-            // we store in the 3-letter codes (macrolang) the highest of the individual codes
-            macro_lang = lang.macrolang();
-            if lang_score_norm < self.lang_points_final.get(&macro_lang) {
-                self.lang_points_final.insert(macro_lang, lang_score_norm);
             }
         }
         debug!("Normalized lang points: {:?}", self.lang_points);
-        debug!("Normalized lang points: {:?}", self.lang_points_final);
 
-        // Rank languages
-        let mut score: OrderedFloat<f32>;
-        for lang in Lang::iter() { //TODO should add "und"?
-            //TODO should create an iterator that does not include variants, so the hack is not
-            //necessary
-            macro_lang = lang.macrolang(); // hack because we are suposed to visit only macros
-            score = OrderedFloat(self.lang_points_final.get(&macro_lang));
-            self.heli_score.entry(score)
-                .and_modify(|langs| langs.push(macro_lang.clone()))
-                .or_insert(vec![macro_lang.clone()]);
-        }
-        debug!("Ranking: {:?}", self.heli_score);
-
-        // return winner for top k = 1
-        // do not choose at random if there is tie, unlike the original code does
-        // I do not want undeterministic output
-        if self.number_top_langs == 1 {
-            if let Some(winners) = self.heli_score.first_key_value() {
-                if winners.1.len() == 0 {
-                    panic!("winners should not be empty!");
-                }
-                return (winners.1[0].clone(), Some(winners.0.into_inner()));
-            } else {
-                panic!("heli_score should not be empty!");
-            }
-        }
-
-        (Lang::Und, None)
+        self.rank_langs()
     }
 }
 
