@@ -52,11 +52,11 @@ impl Identifier {
 
     // Compute the ranking of languages
     fn rank_langs(&mut self) -> (Lang, Option<f32>) {
-        let mut winner_tuple;
+        let winner_tuple;
         // if only one lang is requested, just search for the minimum score (winner)
         if self.number_top_langs == 1 {
             let mut min = Self::PENALTY_VALUE + 1.0;
-            let mut winner_lang = Lang::Und;
+            let mut winner_lang = Lang::unk;
 
             for lang in Lang::iter() {
                 let points = self.lang_points.get(lang);
@@ -77,7 +77,8 @@ impl Identifier {
         }
 
         // return macrolang (aka return finnish instead of variants)
-        winner_tuple.0 = winner_tuple.0.macrolang();
+        // comment because useless in openlid data for now
+        // winner_tuple.0 = winner_tuple.0.macrolang();
         winner_tuple
     }
 
@@ -99,7 +100,7 @@ impl Identifier {
                 Some(charset) => charset,
                 None => {
                     warn!("Could not find unicode block for '{}'", mystery_char);
-                    return (Lang::Und, Some(Self::PENALTY_VALUE));
+                    return (Lang::unk, Some(Self::PENALTY_VALUE));
                 }
             };
 
@@ -131,9 +132,9 @@ impl Identifier {
 
         if words.peek().is_none() {
             if self.use_confidence && self.number_top_langs == 1 {
-                return (Lang::Und, Some(Self::PENALTY_VALUE));
+                return (Lang::unk, Some(Self::PENALTY_VALUE));
             } else {
-                return (Lang::Und, None);
+                return (Lang::unk, None);
             }
         }
 

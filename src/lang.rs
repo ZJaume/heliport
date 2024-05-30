@@ -1,3 +1,4 @@
+#![allow(non_camel_case_types)]
 use std::slice::Iter;
 use std::fmt;
 
@@ -11,93 +12,117 @@ use self::Lang::*;
 #[strum(serialize_all = "lowercase")]
 #[repr(u8)]
 pub enum Lang {
-    Abk, Adz, Afr, Aii, Ame, Amh, Amr, Ara, Arl, Arn, Asm,
-    Aze, Bar, Bcl, Bel, Ben, Boa, Bod, Bpy, Bre, Bul, Cat,
-    Cbu, Cdo, Ceb, Ces, Che, Chk, Cho, Chr, Chv, Chy, Cmn,
-    Cnh, Cor, Cos, Cym, Dan, Deu, Diq, Div, Ell, Eng, Epo,
-    Est, Eus, Ewe, Ext, Fao, Fij, Fin, Fini, Fink, Finl, Finm,
-    Fino, Finp, Finr, Fins, Fint, Finx, Fra, Fry, Gla, Gle, Glg,
-    Glv, Gom, Grn, Gsw, Guj, Hat, Hbs, Hbsbos, Hbshrv, Hbssrp, Heb, Hin,
-    Hmo, Hsb, Hun, Hus, Huu, Hye, Ibo, Ido, Iku, Ilo, Ina,
-    Isl, Ita, Izh, Jpn, Kal, Kan, Kat, Kaz, Kbd, Kbp, Kca,
-    Khm, Kir, Koi, Kor, Kpv, Krc, Ksh, Lao, Lat, Lav, Lin,
-    Lit, Liv, Lmo, Ltz, Lud, Lug, Lus, Mal, Mar, Mcd, Mcf,
-    Mdf, Mhr, Mkd, Mlg, Mlt, Mns, Mon, Mri, Mrj, Msa, Msaind, Msamin,
-    Msazsm, Mwl, Mya, Myv, Nav, Nep, Nhn, Nio, Nld, Nno, Nob,
-    Nso, Oci, Olo, Ori, Oss, Pam, Pan, Pes, Pfl, Pli, Pms,
-    Pnb, Pol, Pon, Por, Que, Roh, Ron, Rus, Sag, Sah, Scn,
-    Sgs, Shk, Sin, Sjd, Sjk, Sju, Slk, Slv, Sma, Sme, Smj,
-    Smn, Sms, Sna, Snd, Som, Sot, Spa, Sqi, Srd, Swa, Swe,
-    Tam, Tat, Tca, Tel, Tet, Tgk, Tgl, Tha, Tso, Tuk, Tur,
-    Tzh, Udm, Uig, Ukr, Ura, Urd, Uzn, Vie, Vls, Vol, Vot,
-    Wln, Xmf, Yid, Yrk, Zul,
-    Und,
+    ace_Arab, ace_Latn, afr_Latn, als_Latn, amh_Ethi, ara_Arab, asm_Beng,
+    ast_Latn, awa_Deva, ayr_Latn, azb_Arab, azj_Latn, bak_Cyrl, bam_Latn,
+    ban_Latn, bel_Cyrl, bem_Latn, ben_Beng, bho_Deva, bjn_Arab, bjn_Latn,
+    bod_Tibt, bos_Latn, bug_Latn, bul_Cyrl, cat_Latn, ceb_Latn, ces_Latn,
+    cjk_Latn, ckb_Arab, crh_Latn, cym_Latn, dan_Latn, deu_Latn, dik_Latn,
+    dyu_Latn, dzo_Tibt, ell_Grek, eng_Latn, epo_Latn, est_Latn, eus_Latn,
+    ewe_Latn, fao_Latn, fij_Latn, fin_Latn, fon_Latn, fra_Latn, fur_Latn,
+    fuv_Latn, gaz_Latn, gla_Latn, gle_Latn, glg_Latn, grn_Latn, guj_Gujr,
+    hat_Latn, hau_Latn, heb_Hebr, hin_Deva, hne_Deva, hrv_Latn, hun_Latn,
+    hye_Armn, ibo_Latn, ilo_Latn, ind_Latn, isl_Latn, ita_Latn, jav_Latn,
+    jpn_Jpan, kab_Latn, kac_Latn, kam_Latn, kan_Knda, kas_Arab, kas_Deva,
+    kat_Geor, kaz_Cyrl, kbp_Latn, kea_Latn, khk_Cyrl, khm_Khmr, kik_Latn,
+    kin_Latn, kir_Cyrl, kmb_Latn, kmr_Latn, knc_Arab, knc_Latn, kon_Latn,
+    kor_Hang, lao_Laoo, lij_Latn, lim_Latn, lin_Latn, lit_Latn, lmo_Latn,
+    ltg_Latn, ltz_Latn, lua_Latn, lug_Latn, luo_Latn, lus_Latn, lvs_Latn,
+    mag_Deva, mai_Deva, mal_Mlym, mar_Deva, min_Latn, mkd_Cyrl, mlt_Latn,
+    mni_Beng, mos_Latn, mri_Latn, mya_Mymr, nld_Latn, nno_Latn, nob_Latn,
+    npi_Deva, nso_Latn, nus_Latn, nya_Latn, oci_Latn, ory_Orya, pag_Latn,
+    pan_Guru, pap_Latn, pbt_Arab, pes_Arab, plt_Latn, pol_Latn, por_Latn,
+    prs_Arab, quy_Latn, ron_Latn, run_Latn, rus_Cyrl, sag_Latn, san_Deva,
+    sat_Olck, scn_Latn, shn_Mymr, sin_Sinh, slk_Latn, slv_Latn, smo_Latn,
+    sna_Latn, snd_Arab, som_Latn, sot_Latn, spa_Latn, srd_Latn, srp_Cyrl,
+    ssw_Latn, sun_Latn, swe_Latn, swh_Latn, szl_Latn, tam_Taml, taq_Latn,
+    taq_Tfng, tat_Cyrl, tel_Telu, tgk_Cyrl, tgl_Latn, tha_Thai, tir_Ethi,
+    tpi_Latn, tsn_Latn, tso_Latn, tuk_Latn, tum_Latn, tur_Latn, twi_Latn,
+    tzm_Tfng, uig_Arab, ukr_Cyrl, umb_Latn, urd_Arab, uzn_Latn, vec_Latn,
+    vie_Latn, war_Latn, wol_Latn, xho_Latn, ydd_Hebr, yor_Latn, yue_Hant,
+    zho_Hans, zho_Hant, zsm_Latn, zul_Latn, unk,
 }
 
 impl Lang {
     pub fn is_cjk(&self) -> bool {
-        *self == Lang::Jpn || *self == Lang::Kor || *self == Lang::Cmn
+        *self == Lang::jpn_Jpan || *self == Lang::kor_Hang || *self == Lang::zho_Hans
+           || *self == Lang::zho_Hant || *self == Lang::yue_Hant
     }
 
     pub fn macrolang(&self) -> Self {
         match self {
-            Fini | Fink | Finl | Finm | Fino | Finp | Finr | Fins | Fint | Finx => return Fin,
+            // Fini | Fink | Finl | Finm | Fino | Finp | Finr | Fins | Fint | Finx => return Fin,
             _ => self.clone(),
         }
     }
 
     // iterator over all languages that have language models
     pub fn iter() -> Iter<'static, Lang> {
-        static LANGS: [Lang; 214] = [
-            Abk, Adz, Afr, Aii, Ame, Amh, Amr, Ara, Arl, Arn, Asm,
-            Aze, Bar, Bcl, Bel, Ben, Boa, Bod, Bpy, Bre, Bul, Cat,
-            Cbu, Cdo, Ceb, Ces, Che, Chk, Cho, Chr, Chv, Chy, Cmn,
-            Cnh, Cor, Cos, Cym, Dan, Deu, Diq, Div, Ell, Eng, Epo,
-            Est, Eus, Ewe, Ext, Fao, Fij, Fin, Fini, Fink, Finl, Finm,
-            Fino, Finp, Finr, Fins, Fint, Finx, Fra, Fry, Gla, Gle, Glg,
-            Glv, Gom, Grn, Gsw, Guj, Hat, Hbsbos, Hbshrv, Hbssrp, Heb, Hin,
-            Hmo, Hsb, Hun, Hus, Huu, Hye, Ibo, Ido, Iku, Ilo, Ina,
-            Isl, Ita, Izh, Jpn, Kal, Kan, Kat, Kaz, Kbd, Kbp, Kca,
-            Khm, Kir, Koi, Kor, Kpv, Krc, Ksh, Lao, Lat, Lav, Lin,
-            Lit, Liv, Lmo, Ltz, Lud, Lug, Lus, Mal, Mar, Mcd, Mcf,
-            Mdf, Mhr, Mkd, Mlg, Mlt, Mns, Mon, Mri, Mrj, Msaind, Msamin,
-            Msazsm, Mwl, Mya, Myv, Nav, Nep, Nhn, Nio, Nld, Nno, Nob,
-            Nso, Oci, Olo, Ori, Oss, Pam, Pan, Pes, Pfl, Pli, Pms,
-            Pnb, Pol, Pon, Por, Que, Roh, Ron, Rus, Sag, Sah, Scn,
-            Sgs, Shk, Sin, Sjd, Sjk, Sju, Slk, Slv, Sma, Sme, Smj,
-            Smn, Sms, Sna, Snd, Som, Sot, Spa, Sqi, Srd, Swa, Swe,
-            Tam, Tat, Tca, Tel, Tet, Tgk, Tgl, Tha, Tso, Tuk, Tur,
-            Tzh, Udm, Uig, Ukr, Ura, Urd, Uzn, Vie, Vls, Vol, Vot,
-            Wln, Xmf, Yid, Yrk, Zul,
-            ];
+        static LANGS: [Lang; 193] = [
+            ace_Arab, ace_Latn, afr_Latn, als_Latn, amh_Ethi, ara_Arab, asm_Beng,
+            ast_Latn, awa_Deva, ayr_Latn, azb_Arab, azj_Latn, bak_Cyrl, bam_Latn,
+            ban_Latn, bel_Cyrl, bem_Latn, ben_Beng, bho_Deva, bjn_Arab, bjn_Latn,
+            bod_Tibt, bos_Latn, bug_Latn, bul_Cyrl, cat_Latn, ceb_Latn, ces_Latn,
+            cjk_Latn, ckb_Arab, crh_Latn, cym_Latn, dan_Latn, deu_Latn, dik_Latn,
+            dyu_Latn, dzo_Tibt, ell_Grek, eng_Latn, epo_Latn, est_Latn, eus_Latn,
+            ewe_Latn, fao_Latn, fij_Latn, fin_Latn, fon_Latn, fra_Latn, fur_Latn,
+            fuv_Latn, gaz_Latn, gla_Latn, gle_Latn, glg_Latn, grn_Latn, guj_Gujr,
+            hat_Latn, hau_Latn, heb_Hebr, hin_Deva, hne_Deva, hrv_Latn, hun_Latn,
+            hye_Armn, ibo_Latn, ilo_Latn, ind_Latn, isl_Latn, ita_Latn, jav_Latn,
+            jpn_Jpan, kab_Latn, kac_Latn, kam_Latn, kan_Knda, kas_Arab, kas_Deva,
+            kat_Geor, kaz_Cyrl, kbp_Latn, kea_Latn, khk_Cyrl, khm_Khmr, kik_Latn,
+            kin_Latn, kir_Cyrl, kmb_Latn, kmr_Latn, knc_Arab, knc_Latn, kon_Latn,
+            kor_Hang, lao_Laoo, lij_Latn, lim_Latn, lin_Latn, lit_Latn, lmo_Latn,
+            ltg_Latn, ltz_Latn, lua_Latn, lug_Latn, luo_Latn, lus_Latn, lvs_Latn,
+            mag_Deva, mai_Deva, mal_Mlym, mar_Deva, min_Latn, mkd_Cyrl, mlt_Latn,
+            mni_Beng, mos_Latn, mri_Latn, mya_Mymr, nld_Latn, nno_Latn, nob_Latn,
+            npi_Deva, nso_Latn, nus_Latn, nya_Latn, oci_Latn, ory_Orya, pag_Latn,
+            pan_Guru, pap_Latn, pbt_Arab, pes_Arab, plt_Latn, pol_Latn, por_Latn,
+            prs_Arab, quy_Latn, ron_Latn, run_Latn, rus_Cyrl, sag_Latn, san_Deva,
+            sat_Olck, scn_Latn, shn_Mymr, sin_Sinh, slk_Latn, slv_Latn, smo_Latn,
+            sna_Latn, snd_Arab, som_Latn, sot_Latn, spa_Latn, srd_Latn, srp_Cyrl,
+            ssw_Latn, sun_Latn, swe_Latn, swh_Latn, szl_Latn, tam_Taml, taq_Latn,
+            taq_Tfng, tat_Cyrl, tel_Telu, tgk_Cyrl, tgl_Latn, tha_Thai, tir_Ethi,
+            tpi_Latn, tsn_Latn, tso_Latn, tuk_Latn, tum_Latn, tur_Latn, twi_Latn,
+            tzm_Tfng, uig_Arab, ukr_Cyrl, umb_Latn, urd_Arab, uzn_Latn, vec_Latn,
+            vie_Latn, war_Latn, wol_Latn, xho_Latn, ydd_Hebr, yor_Latn, yue_Hant,
+            zho_Hans, zho_Hant, zsm_Latn, zul_Latn,
+        ];
         LANGS.iter()
     }
 
-    // iterator adding "und" tag
-    pub fn iter_und() -> Iter<'static, Lang> {
-        static LANGS: [Lang; 215] = [
-            Abk, Adz, Afr, Aii, Ame, Amh, Amr, Ara, Arl, Arn, Asm,
-            Aze, Bar, Bcl, Bel, Ben, Boa, Bod, Bpy, Bre, Bul, Cat,
-            Cbu, Cdo, Ceb, Ces, Che, Chk, Cho, Chr, Chv, Chy, Cmn,
-            Cnh, Cor, Cos, Cym, Dan, Deu, Diq, Div, Ell, Eng, Epo,
-            Est, Eus, Ewe, Ext, Fao, Fij, Fin, Fini, Fink, Finl, Finm,
-            Fino, Finp, Finr, Fins, Fint, Finx, Fra, Fry, Gla, Gle, Glg,
-            Glv, Gom, Grn, Gsw, Guj, Hat, Hbsbos, Hbshrv, Hbssrp, Heb, Hin,
-            Hmo, Hsb, Hun, Hus, Huu, Hye, Ibo, Ido, Iku, Ilo, Ina,
-            Isl, Ita, Izh, Jpn, Kal, Kan, Kat, Kaz, Kbd, Kbp, Kca,
-            Khm, Kir, Koi, Kor, Kpv, Krc, Ksh, Lao, Lat, Lav, Lin,
-            Lit, Liv, Lmo, Ltz, Lud, Lug, Lus, Mal, Mar, Mcd, Mcf,
-            Mdf, Mhr, Mkd, Mlg, Mlt, Mns, Mon, Mri, Mrj, Msaind, Msamin,
-            Msazsm, Mwl, Mya, Myv, Nav, Nep, Nhn, Nio, Nld, Nno, Nob,
-            Nso, Oci, Olo, Ori, Oss, Pam, Pan, Pes, Pfl, Pli, Pms,
-            Pnb, Pol, Pon, Por, Que, Roh, Ron, Rus, Sag, Sah, Scn,
-            Sgs, Shk, Sin, Sjd, Sjk, Sju, Slk, Slv, Sma, Sme, Smj,
-            Smn, Sms, Sna, Snd, Som, Sot, Spa, Sqi, Srd, Swa, Swe,
-            Tam, Tat, Tca, Tel, Tet, Tgk, Tgl, Tha, Tso, Tuk, Tur,
-            Tzh, Udm, Uig, Ukr, Ura, Urd, Uzn, Vie, Vls, Vol, Vot,
-            Wln, Xmf, Yid, Yrk, Zul,
-            Und,
-            ];
+    // iterator adding "unk" tag
+    pub fn iter_unk() -> Iter<'static, Lang> {
+        static LANGS: [Lang; 194] = [
+            ace_Arab, ace_Latn, afr_Latn, als_Latn, amh_Ethi, ara_Arab, asm_Beng,
+            ast_Latn, awa_Deva, ayr_Latn, azb_Arab, azj_Latn, bak_Cyrl, bam_Latn,
+            ban_Latn, bel_Cyrl, bem_Latn, ben_Beng, bho_Deva, bjn_Arab, bjn_Latn,
+            bod_Tibt, bos_Latn, bug_Latn, bul_Cyrl, cat_Latn, ceb_Latn, ces_Latn,
+            cjk_Latn, ckb_Arab, crh_Latn, cym_Latn, dan_Latn, deu_Latn, dik_Latn,
+            dyu_Latn, dzo_Tibt, ell_Grek, eng_Latn, epo_Latn, est_Latn, eus_Latn,
+            ewe_Latn, fao_Latn, fij_Latn, fin_Latn, fon_Latn, fra_Latn, fur_Latn,
+            fuv_Latn, gaz_Latn, gla_Latn, gle_Latn, glg_Latn, grn_Latn, guj_Gujr,
+            hat_Latn, hau_Latn, heb_Hebr, hin_Deva, hne_Deva, hrv_Latn, hun_Latn,
+            hye_Armn, ibo_Latn, ilo_Latn, ind_Latn, isl_Latn, ita_Latn, jav_Latn,
+            jpn_Jpan, kab_Latn, kac_Latn, kam_Latn, kan_Knda, kas_Arab, kas_Deva,
+            kat_Geor, kaz_Cyrl, kbp_Latn, kea_Latn, khk_Cyrl, khm_Khmr, kik_Latn,
+            kin_Latn, kir_Cyrl, kmb_Latn, kmr_Latn, knc_Arab, knc_Latn, kon_Latn,
+            kor_Hang, lao_Laoo, lij_Latn, lim_Latn, lin_Latn, lit_Latn, lmo_Latn,
+            ltg_Latn, ltz_Latn, lua_Latn, lug_Latn, luo_Latn, lus_Latn, lvs_Latn,
+            mag_Deva, mai_Deva, mal_Mlym, mar_Deva, min_Latn, mkd_Cyrl, mlt_Latn,
+            mni_Beng, mos_Latn, mri_Latn, mya_Mymr, nld_Latn, nno_Latn, nob_Latn,
+            npi_Deva, nso_Latn, nus_Latn, nya_Latn, oci_Latn, ory_Orya, pag_Latn,
+            pan_Guru, pap_Latn, pbt_Arab, pes_Arab, plt_Latn, pol_Latn, por_Latn,
+            prs_Arab, quy_Latn, ron_Latn, run_Latn, rus_Cyrl, sag_Latn, san_Deva,
+            sat_Olck, scn_Latn, shn_Mymr, sin_Sinh, slk_Latn, slv_Latn, smo_Latn,
+            sna_Latn, snd_Arab, som_Latn, sot_Latn, spa_Latn, srd_Latn, srp_Cyrl,
+            ssw_Latn, sun_Latn, swe_Latn, swh_Latn, szl_Latn, tam_Taml, taq_Latn,
+            taq_Tfng, tat_Cyrl, tel_Telu, tgk_Cyrl, tgl_Latn, tha_Thai, tir_Ethi,
+            tpi_Latn, tsn_Latn, tso_Latn, tuk_Latn, tum_Latn, tur_Latn, twi_Latn,
+            tzm_Tfng, uig_Arab, ukr_Cyrl, umb_Latn, urd_Arab, uzn_Latn, vec_Latn,
+            vie_Latn, war_Latn, wol_Latn, xho_Latn, ydd_Hebr, yor_Latn, yue_Hant,
+            zho_Hans, zho_Hant, zsm_Latn, zul_Latn,
+            unk,
+        ];
         LANGS.iter()
     }
 
@@ -106,7 +131,7 @@ impl Lang {
 /**
  * Simple vector to store scores of each language
  * as fast alternative to a hashmap<lang, f32> if all or almost all languges have to be stored
- * it takes advantage of underlying u8 representation of the Lang enum
+ * it takes advantage of unkerlying u8 representation of the Lang enum
  */
 pub struct LangScores {
     inner: [f32; Lang::COUNT],
