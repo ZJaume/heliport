@@ -43,8 +43,8 @@ impl PyIdentifier {
     fn new() -> Self {
         let modulepath = pythonpath().expect("Error loading python module path");
         let identifier = Identifier::new(
-            format!("{modulepath}/wordmodel.bin"),
             format!("{modulepath}/charmodel.bin"),
+            format!("{modulepath}/wordmodel.bin"),
         );
 
         Self {
@@ -67,8 +67,8 @@ pub fn cli_run() -> PyResult<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let modulepath = pythonpath().expect("Error loading python module path");
     let mut identifier = Identifier::new(
-        format!("{modulepath}/wordmodel.bin"),
         format!("{modulepath}/charmodel.bin"),
+        format!("{modulepath}/wordmodel.bin"),
     );
 
     let stdin = io::stdin();
