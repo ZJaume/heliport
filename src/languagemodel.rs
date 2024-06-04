@@ -26,7 +26,7 @@ pub enum ModelType {
 #[archive_attr(derive(Debug))]
 pub struct Model {
     pub dic: HashMap<String, HashMap<Lang, f32, MyHasher>, MyHasher>,
-    model_type: ModelType,
+    pub model_type: ModelType,
 }
 
 impl Model {
@@ -102,11 +102,8 @@ impl Model {
         // if gram exists, insert the entry into that gram BTree, identified by lang and prob
         // if not, create a new BTree and insert it
         let mut prob;
-        for (mut gram, amount) in temp_dict {
+        for (gram, amount) in temp_dict {
             prob = -(amount as f32 / langamount as f32).log10();
-            if self.model_type == ModelType::Word {
-                gram = format!(" {gram} ");
-            }
             if self.dic.contains_key(&gram) {
                 let inner_map = self.dic.get_mut(&gram).unwrap();
                 inner_map.insert(langcode.clone(), prob);

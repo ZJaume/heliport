@@ -8,7 +8,7 @@ use unicode_blocks;
 use regex::Regex;
 use log::{debug,warn};
 
-use crate::languagemodel::Model;
+use crate::languagemodel::{Model, ModelType};
 use crate::lang::{Lang,LangScores};
 
 
@@ -42,6 +42,8 @@ impl Identifier {
 
         let wordmodel = word_handle.join().unwrap();
         let charmodel = char_handle.join().unwrap();
+        assert!(wordmodel.model_type == ModelType::Word);
+        assert!(charmodel.model_type == ModelType::Char);
         let regex_non_alpha = Regex::new(r#"[^#gc\p{L}\p{M}′'’´ʹािीुूृेैोौंँः् া ি ী ু ূ ৃ ে ৈ ো ৌ।্্্я̄\u07A6\u07A7\u07A8\u07A9\u07AA\u07AB\u07AC\u07AD\u07AE\u07AF\u07B0\u0A81\u0A82\u0A83\u0ABC\u0ABD\u0ABE\u0ABF\u0AC0\u0AC1\u0AC2\u0AC3\u0AC4\u0AC5\u0AC6\u0AC7\u0AC8\u0AC9\u0ACA\u0ACB\u0ACC\u0ACD\u0AD0\u0AE0\u0AE1\u0AE2\u0AE3\u0AE4\u0AE5\u0AE6\u0AE7\u0AE8\u0AE9\u0AEA\u0AEB\u0AEC\u0AED\u0AEE\u0AEF\u0AF0\u0AF1]"#)
             .expect("Error compiling non-alpha regex for Idenfifier");
 
@@ -151,17 +153,7 @@ impl Identifier {
         let mut word_scored;
         let mut num_words = 0;
         let mut mystery_length = 0;
-        let mut word;
-        for iword in words {
-            //TODO the original implementation inserts spaces at the beginning and end of the current word
-            //if the word is the last, it only adds at the beginning
-            //I found this space thing completely useless, the matches will be the same without the
-            //spacing. Also, the original omits space at the end for the last word could be a bug?
-            //that way last words are never taken into account because the wordmodel is loading all
-            //the words with space at the begining and at the end. is this intended?
-            //TODO let's try with the spaces and see what happens
-            word = format!(" {iword} ");
-
+        for word in words {
             debug!("Scoring '{}'", word);
             word_scored = false;
             num_words += 1;
@@ -170,13 +162,14 @@ impl Identifier {
 
             //TODO this condition seems useless, the constant never changes, maybe for debug?
             if Model::MAX_USED < 1.0 {
-                if self.wordmodel.dic.contains_key(&word) {
+                if self.wordmodel.dic.contains_key(word) {
                     // found the word in language model
                     // update scores according to each lang that has the word
                     // use penalty value for langs that don't have the word
                     word_scored = true;
                     debug!("word scored");
-                    let kiepro = &self.wordmodel.dic[&word];
+                    let kiepro = &self.wordmodel.dic[word];
+                    debug!("{:?}", kiepro);
                     for lang in Lang::iter() {
                         if kiepro.contains_key(lang) {
                             self.word_scores.insert(lang.clone(), kiepro[lang]);
@@ -198,6 +191,7 @@ impl Identifier {
             // language
             //TODO does it make sense to explore ngrams longer than the current word?
             let mut score;
+            let wordspace = format!(" {word} ");
             for t in (1..Self::MAX_NGRAM+1).rev() {
                 if word_scored {
                     break;
@@ -207,7 +201,7 @@ impl Identifier {
                 // Iterate over all possible ngrams of order t, over the current word
                 // shingles manages ngram extraction automatically
                 // if word has less chars than current ngram size, it won't do nothing
-                for gram in word.as_shingles(t) {
+                for gram in wordspace.as_shingles(t) {
                     if self.charmodel.dic.contains_key(gram) {
                         debug!("Word scored in ngram '{gram}'");
                         grammaara += 1;
