@@ -1,11 +1,13 @@
+use std::slice::Iter;
+use std::fmt;
+
 use rkyv::{self, Archive, Deserialize, Serialize};
-use strum::{EnumString, EnumCount, Display};
+use strum::{EnumString, EnumCount, Display, FromRepr};
 
 use self::Lang::*;
-use std::slice::Iter;
 
 #[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Eq, Hash, Clone, Copy,
-         Display, EnumCount, EnumString)]
+         Display, EnumCount, EnumString, FromRepr)]
 #[archive_attr(derive(Debug, PartialEq, Eq, Hash))]
 #[strum(serialize_all = "lowercase")]
 #[repr(u8)]
@@ -107,7 +109,6 @@ impl Lang {
  * as fast alternative to a hashmap<lang, f32> if all or almost all languges have to be stored
  * it takes advantage of underlying u8 representation of the Lang enum
  */
-#[derive(Debug)]
 pub struct LangScores {
     inner: [f32; Lang::COUNT],
 }
@@ -143,5 +144,18 @@ impl LangScores {
         for i in 0..Lang::COUNT {
             self.inner[i] = 0.0;
         }
+    }
+}
+
+impl fmt::Debug for LangScores {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{{")?;
+        for (i, val) in self.inner.iter().enumerate() {
+            if i != 0 {
+                write!(f," ")?;
+            }
+            write!(f, "{}={}", Lang::from_repr(i as u8).unwrap(), val)?;
+        }
+        write!(f, "}}")
     }
 }
