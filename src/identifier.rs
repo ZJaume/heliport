@@ -8,13 +8,13 @@ use unicode_blocks;
 use regex::Regex;
 use log::{debug,warn};
 
-use crate::Model;
+use crate::languagemodel::Model;
 use crate::lang::{Lang,LangScores};
 
 
 pub struct Identifier {
     charmodel: Model,
-    pub wordmodel: Model,
+    wordmodel: Model,
     regex_non_alpha: Regex,
     _regex_spaces: Regex,
     use_confidence: bool,
@@ -90,7 +90,7 @@ impl Identifier {
         winner_tuple
     }
 
-    pub fn identify(&mut self, text: &String) -> (Lang, Option<f32>) {
+    pub fn identify(&mut self, text: &str) -> (Lang, Option<f32>) {
         // lowercase and remove non-alphabetic characters
         //TODO is it really remove all non alpha? because I found words with punctuation in
         //langmodel entries

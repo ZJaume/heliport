@@ -7,6 +7,7 @@ use std::slice::Iter;
 #[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Eq, Hash, Clone, Copy,
          Display, EnumCount, EnumString)]
 #[archive_attr(derive(Debug, PartialEq, Eq, Hash))]
+#[strum(serialize_all = "lowercase")]
 #[repr(u8)]
 pub enum Lang {
     Abk, Adz, Afr, Aii, Ame, Amh, Amr, Ara, Arl, Arn, Asm,
