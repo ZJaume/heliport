@@ -160,31 +160,25 @@ impl Identifier {
             mystery_length += word.chars().count(); //TODO move this to the cjk count above? .chars() iterator is expensive
             self.word_scores.reset();
 
-            //TODO this condition seems useless, the constant never changes, maybe for debug?
-            if Model::MAX_USED < 1.0 {
-                if self.wordmodel.dic.contains_key(word) {
-                    // found the word in language model
-                    // update scores according to each lang that has the word
-                    // use penalty value for langs that don't have the word
-                    word_scored = true;
-                    debug!("word scored");
-                    let kiepro = &self.wordmodel.dic[word];
-                    debug!("{:?}", kiepro);
-                    for lang in Lang::iter() {
-                        if kiepro.contains_key(lang) {
-                            self.word_scores.insert(lang.clone(), kiepro[lang]);
-                        } else {
-                            self.word_scores.insert(lang.clone(), Self::PENALTY_VALUE);
-                        }
+            if self.wordmodel.dic.contains_key(word) {
+                // found the word in language model
+                // update scores according to each lang that has the word
+                // use penalty value for langs that don't have the word
+                word_scored = true;
+                debug!("word scored");
+                let kiepro = &self.wordmodel.dic[word];
+                debug!("{:?}", kiepro);
+                for lang in Lang::iter() {
+                    if kiepro.contains_key(lang) {
+                        self.word_scores.insert(lang.clone(), kiepro[lang]);
+                    } else {
+                        self.word_scores.insert(lang.clone(), Self::PENALTY_VALUE);
                     }
                 }
             }
 
-            //TODO is this really needed? if word is not found it is not scored in the code above
-            //so it is still at 0 because it was reset at the beginning of the iteration
             if !word_scored {
                 debug!("Word has not been found");
-                self.word_scores.reset();
             }
 
             // Go from highest order ngram to lowest until one of the orders is found in any
