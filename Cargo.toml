@@ -6,7 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 name = "heli_otr"
-crate-type = ["cdylib"]
+# use lib to be able to compile library from other rust crates
+# use cdylib to enable maturin linkage
+crate-type = ["lib", "cdylib"]
 
 [dependencies]
 rkyv = "0.7"

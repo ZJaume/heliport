@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
+use std::sync::Arc;
 use std::path::Path;
-use std::thread;
 
 use ordered_float::OrderedFloat;
 use shingles::AsShingles;
@@ -13,8 +13,8 @@ use crate::lang::{Lang,LangScores};
 
 
 pub struct Identifier {
-    charmodel: Model,
-    wordmodel: Model,
+    charmodel: Arc<Model>,
+    wordmodel: Arc<Model>,
     regex_non_alpha: Regex,
     _regex_spaces: Regex,
     use_confidence: bool,
@@ -29,19 +29,9 @@ impl Identifier {
     const PENALTY_VALUE : f32 = 7.0;
     const MAX_NGRAM : usize = 6;
 
-    pub fn new(grampath: String, wordpath: String) -> Self {
-        let char_handle = thread::spawn(move || {
-            let path = Path::new(&grampath);
-            Model::from_bin(path)
-        });
-
-        let word_handle = thread::spawn(move || {
-            let path = Path::new(&wordpath);
-            Model::from_bin(path)
-        });
-
-        let wordmodel = word_handle.join().unwrap();
-        let charmodel = char_handle.join().unwrap();
+    pub fn new(gramref: Arc<Model>, wordref: Arc<Model>) -> Self {
+        let wordmodel = wordref.clone();
+        let charmodel = gramref.clone();
         assert!(wordmodel.model_type == ModelType::Word);
         assert!(charmodel.model_type == ModelType::Char);
         let regex_non_alpha = Regex::new(r#"[^#gc\p{L}\p{M}′'’´ʹािीुूृेैोौंँः् া ি ী ু ূ ৃ ে ৈ ো ৌ।্্্я̄\u07A6\u07A7\u07A8\u07A9\u07AA\u07AB\u07AC\u07AD\u07AE\u07AF\u07B0\u0A81\u0A82\u0A83\u0ABC\u0ABD\u0ABE\u0ABF\u0AC0\u0AC1\u0AC2\u0AC3\u0AC4\u0AC5\u0AC6\u0AC7\u0AC8\u0AC9\u0ACA\u0ACB\u0ACC\u0ACD\u0AD0\u0AE0\u0AE1\u0AE2\u0AE3\u0AE4\u0AE5\u0AE6\u0AE7\u0AE8\u0AE9\u0AEA\u0AEB\u0AEC\u0AED\u0AEE\u0AEF\u0AF0\u0AF1]"#)

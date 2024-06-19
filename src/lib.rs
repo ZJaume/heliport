@@ -1,5 +1,7 @@
 use std::io::{self, BufRead};
+use std::sync::Arc;
 use std::path::Path;
+use std::thread;
 use std::env;
 
 use pyo3::prelude::*;
@@ -31,6 +33,25 @@ fn pythonpath() -> PyResult<String> {
     })
 }
 
+fn load_models() -> (Model, Model) {
+    let modulepath = pythonpath().expect("Error loading python module path");
+    let grampath = format!("{modulepath}/charmodel.bin");
+    let char_handle = thread::spawn(move || {
+        let path = Path::new(&grampath);
+        Model::from_bin(path)
+    });
+
+    let wordpath = format!("{modulepath}/wordmodel.bin");
+    let word_handle = thread::spawn(move || {
+        let path = Path::new(&wordpath);
+        Model::from_bin(path)
+    });
+    let charmodel = char_handle.join().unwrap();
+    let wordmodel = word_handle.join().unwrap();
+
+    (charmodel, wordmodel)
+}
+
 /// Bindings to Python
 #[pyclass(name = "Identifier")]
 pub struct PyIdentifier {
@@ -41,10 +62,10 @@ pub struct PyIdentifier {
 impl PyIdentifier {
     #[new]
     fn new() -> Self {
-        let modulepath = pythonpath().expect("Error loading python module path");
+        let (charmodel, wordmodel) = load_models();
         let identifier = Identifier::new(
-            format!("{modulepath}/charmodel.bin"),
-            format!("{modulepath}/wordmodel.bin"),
+            Arc::new(charmodel),
+            Arc::new(wordmodel),
         );
 
         Self {
@@ -62,13 +83,14 @@ impl PyIdentifier {
 //     inner: Lang,
 // }
 
+
 #[pyfunction]
 pub fn cli_run() -> PyResult<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
-    let modulepath = pythonpath().expect("Error loading python module path");
+    let (charmodel, wordmodel) = load_models();
     let mut identifier = Identifier::new(
-        format!("{modulepath}/charmodel.bin"),
-        format!("{modulepath}/wordmodel.bin"),
+            Arc::new(charmodel),
+            Arc::new(wordmodel),
     );
 
     let stdin = io::stdin();
@@ -76,7 +98,6 @@ pub fn cli_run() -> PyResult<()> {
     for line in stdin.lock().lines() {
         println!("{}", identifier.identify(&line.unwrap()).0);
     }
-
     Ok(())
 }
 
