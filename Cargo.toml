@@ -1,6 +1,6 @@
 [package]
 name = "heli_otr"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -11,8 +11,7 @@ name = "heli_otr"
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
-rkyv = "0.7"
-zstd = "0.13"
+bitcode = "0.6"
 regex = "1.10"
 unicode-blocks = "0.1.8"
 shingles = "0.1"

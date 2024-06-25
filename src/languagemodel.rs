@@ -4,26 +4,22 @@ use std::io::{Write, Read};
 use std::path::Path;
 use std::fs::{self, File};
 
-use rkyv::ser::{Serializer, serializers::AllocSerializer};
-use rkyv::{self, Archive, Deserialize, Serialize};
 use log::{debug};
+use bitcode;
 
 use wyhash2::WyHash;
 type MyHasher = BuildHasherDefault<WyHash>;
 
 use crate::lang::Lang;
 
-#[derive(Archive, Deserialize, Serialize, Debug, PartialEq)]
-#[archive(compare(PartialEq))]
-#[archive_attr(derive(Debug))]
+#[derive(bitcode::Encode, bitcode::Decode, Debug, PartialEq)]
 pub enum ModelType {
     Word,
     Char
 }
 
 
-#[derive(Archive, Deserialize, Serialize, Debug, )]
-#[archive_attr(derive(Debug))]
+#[derive(bitcode::Encode, bitcode::Decode, Debug, PartialEq)]
 pub struct Model {
     pub dic: HashMap<String, HashMap<Lang, f32, MyHasher>, MyHasher>,
     pub model_type: ModelType,
@@ -122,8 +118,7 @@ impl Model {
         let mut content = Vec::new();
         let _ = file.read_to_end(&mut content).unwrap();
 
-        let archived = unsafe { rkyv::archived_root::<Self>(&content[..]) };
-        archived.deserialize(&mut rkyv::Infallible).unwrap()
+        bitcode::decode(&content).unwrap()
     }
 
     // Save the struct in binary format
@@ -133,10 +128,7 @@ impl Model {
         let mut file = File::create(p).expect(
             format!("Error cannot write to file {p:?}").as_str());
 
-        // Serialize in rkyv zero-copy serialization binary format
-        let mut serializer = AllocSerializer::<1024>::default();
-        serializer.serialize_value(&self).unwrap();
-        let serialized = serializer.into_serializer().into_inner();
+        let serialized = bitcode::encode(&self);
         // Write serialized bytes to the compressor
         file.write_all(&serialized).expect("Error writing serialized model");
     }

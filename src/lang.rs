@@ -1,14 +1,13 @@
 use std::slice::Iter;
 use std::fmt;
 
-use rkyv::{self, Archive, Deserialize, Serialize};
 use strum::{EnumString, EnumCount, Display, FromRepr};
+use bitcode;
 
 use self::Lang::*;
 
-#[derive(Archive, Deserialize, Serialize, Debug, PartialEq, Eq, Hash, Clone, Copy,
+#[derive(bitcode::Encode, bitcode::Decode, Debug, PartialEq, Eq, Hash, Clone, Copy,
          Display, EnumCount, EnumString, FromRepr)]
-#[archive_attr(derive(Debug, PartialEq, Eq, Hash))]
 #[strum(serialize_all = "lowercase")]
 #[repr(u8)]
 pub enum Lang {
