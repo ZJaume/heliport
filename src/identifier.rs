@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
-use std::path::Path;
 
 use ordered_float::OrderedFloat;
 use shingles::AsShingles;

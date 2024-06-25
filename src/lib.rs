@@ -10,7 +10,6 @@ use env_logger::Env;
 
 use crate::languagemodel::{Model, ModelType};
 use crate::identifier::Identifier;
-use crate::lang::Lang;
 
 
 pub mod languagemodel;
