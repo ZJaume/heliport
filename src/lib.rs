@@ -22,7 +22,7 @@ pub fn pythonpath() -> PyResult<String> {
     let mut path = String::new();
     Python::with_gil(|py| {
         // Instead of hardcoding the module name, obtain it from the crate name at compile time
-        let module = PyModule::import(py, env!("CARGO_PKG_NAME"))?;
+        let module = PyModule::import_bound(py, env!("CARGO_PKG_NAME"))?;
         let paths: Vec<&str> = module
             .getattr("__path__")?
             .extract()?;
@@ -124,7 +124,7 @@ pub fn cli_convert() -> PyResult<()> {
 }
 
 #[pymodule]
-fn heli_otr(_py: Python, m: &PyModule) -> PyResult<()> {
+fn heli_otr(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(cli_run))?;
     m.add_wrapped(wrap_pyfunction!(cli_convert))?;
     m.add_class::<PyIdentifier>()?;
