@@ -18,7 +18,7 @@ pub mod lang;
 
 
 // Call python interpreter and obtain python path of our module
-fn pythonpath() -> PyResult<String> {
+pub fn pythonpath() -> PyResult<String> {
     let mut path = String::new();
     Python::with_gil(|py| {
         // Instead of hardcoding the module name, obtain it from the crate name at compile time
@@ -32,15 +32,14 @@ fn pythonpath() -> PyResult<String> {
     })
 }
 
-fn load_models() -> (Model, Model) {
-    let modulepath = pythonpath().expect("Error loading python module path");
-    let grampath = format!("{modulepath}/charmodel.bin");
+pub fn load_models(modelpath: &str) -> (Model, Model) {
+    let grampath = format!("{modelpath}/charmodel.bin");
     let char_handle = thread::spawn(move || {
         let path = Path::new(&grampath);
         Model::from_bin(path)
     });
 
-    let wordpath = format!("{modulepath}/wordmodel.bin");
+    let wordpath = format!("{modelpath}/wordmodel.bin");
     let word_handle = thread::spawn(move || {
         let path = Path::new(&wordpath);
         Model::from_bin(path)
@@ -61,7 +60,8 @@ pub struct PyIdentifier {
 impl PyIdentifier {
     #[new]
     fn new() -> Self {
-        let (charmodel, wordmodel) = load_models();
+        let modulepath = pythonpath().expect("Error loading python module path");
+        let (charmodel, wordmodel) = load_models(&modulepath);
         let identifier = Identifier::new(
             Arc::new(charmodel),
             Arc::new(wordmodel),
@@ -86,7 +86,8 @@ impl PyIdentifier {
 #[pyfunction]
 pub fn cli_run() -> PyResult<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
-    let (charmodel, wordmodel) = load_models();
+    let modulepath = pythonpath().expect("Error loading python module path");
+    let (charmodel, wordmodel) = load_models(&modulepath);
     let mut identifier = Identifier::new(
             Arc::new(charmodel),
             Arc::new(wordmodel),
