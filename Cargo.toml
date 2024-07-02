@@ -16,7 +16,7 @@ regex = "1.10"
 unicode-blocks = "0.1.8"
 shingles = "0.1"
 ordered-float = "4.2"
-log = { version = "0.4", features = ["max_level_debug", "release_max_level_debug"]}
+log = { version = "0.4" }
 env_logger = "0.10"
 strum = { version = "0.25", features = ["derive"] }
 wyhash2 = "0.2.1"
@@ -24,3 +24,7 @@ pyo3 = { version = "0.22", features = ["gil-refs"] }
 
 [dev-dependencies]
 test-log = "0.2.15"
+
+[features]
+# Put log features in default, to allow crates using heli as a library, disable them
+default = ["log/max_level_debug", "log/release_max_level_debug"]
