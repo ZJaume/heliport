@@ -4,6 +4,7 @@ use std::io::{Write, Read};
 use std::path::Path;
 use std::fs::{self, File};
 
+use strum::IntoEnumIterator;
 use log::{debug};
 use bitcode;
 
@@ -41,6 +42,7 @@ impl Model {
 
         // Load each type of language model
         for lang in Lang::iter() {
+            if lang == Lang::unk { continue; }
             let lang_repr = lang.to_string().to_lowercase();
             if let ModelType::Char = model.model_type {
                 model.read_model(&model_dir.join(format!("{lang_repr}.LowGramModel1")), &lang);

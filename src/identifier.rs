@@ -2,13 +2,14 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ordered_float::OrderedFloat;
+use strum::IntoEnumIterator;
 use shingles::AsShingles;
 use unicode_blocks;
 use regex::Regex;
 use log::{debug,warn};
 
 use crate::languagemodel::{Model, ModelType};
-use crate::lang::{Lang,LangScores};
+use crate::lang::{Lang, LangScores};
 
 
 pub struct Identifier {
@@ -62,7 +63,7 @@ impl Identifier {
                 let points = self.lang_points.get(lang);
                 if points <= min {
                     min = points;
-                    winner_lang = *lang;
+                    winner_lang = lang;
                 }
             }
 
@@ -159,8 +160,8 @@ impl Identifier {
                 let kiepro = &self.wordmodel.dic[word];
                 debug!("{:?}", kiepro);
                 for lang in Lang::iter() {
-                    if kiepro.contains_key(lang) {
-                        self.word_scores.insert(lang.clone(), kiepro[lang]);
+                    if kiepro.contains_key(&lang) {
+                        self.word_scores.insert(lang.clone(), kiepro[&lang]);
                     } else {
                         self.word_scores.insert(lang.clone(), Self::PENALTY_VALUE);
                     }
@@ -193,8 +194,8 @@ impl Identifier {
                         let kiepro = &self.charmodel.dic[gram];
                         for lang in Lang::iter() {
                             score = self.word_scores.get(lang);
-                            if kiepro.contains_key(lang) {
-                                self.word_scores.insert(lang.clone(), score + kiepro[lang]);
+                            if kiepro.contains_key(&lang) {
+                                self.word_scores.insert(lang.clone(), score + kiepro[&lang]);
                             } else {
                                 self.word_scores.insert(lang.clone(), score + Self::PENALTY_VALUE);
                             }
@@ -226,11 +227,11 @@ impl Identifier {
         // the CJK fix could just finish early?
         for lang in Lang::iter() {
             let lang_score_norm = self.lang_points.get(lang) / num_words as f32;
-            self.lang_points.insert(*lang, lang_score_norm);
+            self.lang_points.insert(lang, lang_score_norm);
 
             if (100 / mystery_length * cjk_num_chars) > 50 {
                 if !lang.is_cjk() {
-                    self.lang_points.insert(*lang, Self::PENALTY_VALUE + 1.0);
+                    self.lang_points.insert(lang, Self::PENALTY_VALUE + 1.0);
                 }
             }
         }
