@@ -15,6 +15,7 @@ dynamic = ["version"]
 [project.scripts]
 heli = "heli_otr:cli_run"
 heli-convert = "heli_otr:cli_convert"
+heli-download = "heli_otr:cli_download"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]

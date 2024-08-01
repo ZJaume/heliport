@@ -15,10 +15,13 @@ use crate::identifier::Identifier;
 pub mod languagemodel;
 pub mod identifier;
 pub mod lang;
+mod utils;
 
+const WORDMODEL_FILE: &str = "wordmodel.bin";
+const CHARMODEL_FILE: &str = "charmodel.bin";
 
 // Call python interpreter and obtain python path of our module
-pub fn pythonpath() -> PyResult<String> {
+pub fn module_path() -> PyResult<String> {
     let mut path = String::new();
     Python::with_gil(|py| {
         // Instead of hardcoding the module name, obtain it from the crate name at compile time
@@ -33,13 +36,13 @@ pub fn pythonpath() -> PyResult<String> {
 }
 
 pub fn load_models(modelpath: &str) -> (Model, Model) {
-    let grampath = format!("{modelpath}/charmodel.bin");
+    let grampath = format!("{modelpath}/{CHARMODEL_FILE}");
     let char_handle = thread::spawn(move || {
         let path = Path::new(&grampath);
         Model::from_bin(path)
     });
 
-    let wordpath = format!("{modelpath}/wordmodel.bin");
+    let wordpath = format!("{modelpath}/{WORDMODEL_FILE}");
     let word_handle = thread::spawn(move || {
         let path = Path::new(&wordpath);
         Model::from_bin(path)
@@ -60,7 +63,7 @@ pub struct PyIdentifier {
 impl PyIdentifier {
     #[new]
     fn new() -> Self {
-        let modulepath = pythonpath().expect("Error loading python module path");
+        let modulepath = module_path().expect("Error loading python module path");
         let (charmodel, wordmodel) = load_models(&modulepath);
         let identifier = Identifier::new(
             Arc::new(charmodel),
@@ -86,7 +89,7 @@ impl PyIdentifier {
 #[pyfunction]
 pub fn cli_run() -> PyResult<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
-    let modulepath = pythonpath().expect("Error loading python module path");
+    let modulepath = module_path().expect("Error loading python module path");
     let (charmodel, wordmodel) = load_models(&modulepath);
     let mut identifier = Identifier::new(
             Arc::new(charmodel),
@@ -102,9 +105,30 @@ pub fn cli_run() -> PyResult<()> {
 }
 
 #[pyfunction]
+pub fn cli_download() -> PyResult<()> {
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    let modulepath = module_path().expect("Error loading python module path");
+    let url = format!(
+        "https://github.com/ZJaume/heli-otr/releases/download/v{}",
+        env!("CARGO_PKG_VERSION"));
+
+    utils::download_file(
+        &format!("{url}/{WORDMODEL_FILE}"),
+        &format!("{modulepath}/{WORDMODEL_FILE}")
+    ).unwrap();
+    utils::download_file(
+        &format!("{url}/{CHARMODEL_FILE}"),
+        &format!("{modulepath}/{CHARMODEL_FILE}")
+    ).unwrap();
+    info!("Finished");
+
+    Ok(())
+}
+
+#[pyfunction]
 pub fn cli_convert() -> PyResult<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
-    let modulepath = pythonpath().expect("Error loading python module path");
+    let modulepath = module_path().expect("Error loading python module path");
     debug!("Module path found: {}", modulepath);
     let modelpath = Path::new("./LanguageModels");
 
@@ -127,6 +151,7 @@ pub fn cli_convert() -> PyResult<()> {
 fn heli_otr(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(cli_run))?;
     m.add_wrapped(wrap_pyfunction!(cli_convert))?;
+    m.add_wrapped(wrap_pyfunction!(cli_download))?;
     m.add_class::<PyIdentifier>()?;
     // m.add_class::<PyLang>()?;
 

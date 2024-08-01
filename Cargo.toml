@@ -22,6 +22,9 @@ strum = { version = "0.25", features = ["derive"] }
 strum_macros = "0.25"
 wyhash2 = "0.2.1"
 pyo3 = { version = "0.22", features = ["gil-refs"] }
+reqwest = { version = "0.12", features = ["stream"] }
+tokio = { version = "1", features = ["io-util", "rt-multi-thread", "signal"] }
+futures-util = "0.3"
 
 [dev-dependencies]
 test-log = "0.2.15"
