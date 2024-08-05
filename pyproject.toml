@@ -3,7 +3,7 @@ requires = ["maturin>=1.5,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "heli_otr"
+name = "heliport"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
@@ -13,9 +13,9 @@ classifiers = [
 dynamic = ["version"]
 
 [project.scripts]
-heli = "heli_otr:cli_run"
-heli-convert = "heli_otr:cli_convert"
-heli-download = "heli_otr:cli_download"
+heliport = "heliport:cli_run"
+heliport-convert = "heliport:cli_convert"
+heliport-download = "heliport:cli_download"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]

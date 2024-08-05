@@ -109,7 +109,8 @@ pub fn cli_download() -> PyResult<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let modulepath = module_path().expect("Error loading python module path");
     let url = format!(
-        "https://github.com/ZJaume/heli-otr/releases/download/v{}",
+        "https://github.com/ZJaume/{}/releases/download/v{}",
+        env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"));
 
     utils::download_file(
@@ -148,7 +149,7 @@ pub fn cli_convert() -> PyResult<()> {
 }
 
 #[pymodule]
-fn heli_otr(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn heliport(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(cli_run))?;
     m.add_wrapped(wrap_pyfunction!(cli_convert))?;
     m.add_wrapped(wrap_pyfunction!(cli_download))?;
