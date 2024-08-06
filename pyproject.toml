@@ -14,7 +14,7 @@ dynamic = ["version"]
 
 [project.scripts]
 heliport = "heliport:cli_run"
-heliport-convert = "heliport:cli_convert"
+heliport-compile = "heliport:cli_compile"
 heliport-download = "heliport:cli_download"
 
 [tool.maturin]

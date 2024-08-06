@@ -95,7 +95,7 @@ pub fn cli_download() -> PyResult<()> {
 }
 
 #[pyfunction]
-pub fn cli_convert() -> PyResult<()> {
+pub fn cli_compile() -> PyResult<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let modulepath = module_path().expect("Error loading python module path");
     debug!("Module path found: {}", modulepath);
@@ -118,7 +118,7 @@ pub fn cli_convert() -> PyResult<()> {
 #[pymodule]
 fn heliport(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(cli_run))?;
-    m.add_wrapped(wrap_pyfunction!(cli_convert))?;
+    m.add_wrapped(wrap_pyfunction!(cli_compile))?;
     m.add_wrapped(wrap_pyfunction!(cli_download))?;
     m.add_class::<PyIdentifier>()?;
     // m.add_class::<PyLang>()?;
