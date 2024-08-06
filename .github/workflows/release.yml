@@ -84,6 +84,9 @@ jobs:
 
   release:
     name: Release
+    environment: release
+    permissions:
+      id-token: write
     runs-on: ubuntu-22.04
     if: "startsWith(github.ref, 'refs/tags/')"
     needs: [linux, sdist]
@@ -92,7 +95,7 @@ jobs:
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
         env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+          MATURIN_REPOSITORY: testpypi
         with:
           command: upload
           args: --non-interactive --skip-existing wheels-*/*
