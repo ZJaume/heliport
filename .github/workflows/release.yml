@@ -31,7 +31,7 @@ jobs:
       - uses: actions/setup-python@v5
         id: setup-python
         with:
-          python-version: 3.8
+          python-version: 3.9
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -53,7 +53,7 @@ jobs:
           sccache: 'true'
           manylinux: auto
 
-      - run: pip install dist/*-cp38-*.whl
+      - run: pip install dist/*-cp39-*.whl
       - run: heliport-compile
 
       - name: Upload wheels
@@ -65,7 +65,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: models-linux-${{ matrix.platform.target }}
-          path: /opt/hostedtoolcache/Python/${{ steps.setup-python.outputs.python-version }}/x64/lib/python3.8/site-packages/heliport/*.bin
+          path: /opt/hostedtoolcache/Python/${{ steps.setup-python.outputs.python-version }}/x64/lib/python3.9/site-packages/heliport/*.bin
 
   sdist:
     runs-on: ubuntu-22.04
