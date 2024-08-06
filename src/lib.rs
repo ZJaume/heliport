@@ -109,6 +109,8 @@ pub fn cli_convert() -> PyResult<()> {
         info!("Saving {type_repr} model");
         model.save(Path::new(&savepath));
     }
+    info!("Saved models at '{}'", modulepath);
+    info!("Finished");
 
     Ok(())
 }
