@@ -4,11 +4,23 @@ build-backend = "maturin"
 
 [project]
 name = "heliport"
+description = "Fast and accurate language identifier"
 requires-python = ">=3.8"
+authors = [
+    { "name" = "Jaume Zaragoza", "email" = "jzaragoza@prompsit.com" }
+]
+maintainers = [
+    { "name" = "Jaume Zaragoza", "email" = "jzaragoza@prompsit.com" }
+]
 classifiers = [
+    "Environment :: Console",
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Topic :: Text Processing :: Linguistic",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
 ]
 dynamic = ["version"]
 
