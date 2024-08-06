@@ -2,19 +2,17 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ordered_float::OrderedFloat;
-use strum::IntoEnumIterator;
+use strum::{IntoEnumIterator};
 use shingles::AsShingles;
 use unicode_blocks;
 use regex::Regex;
 use log::{debug,warn};
 
-use crate::languagemodel::{Model, ModelType};
+use crate::languagemodel::{Models};
 use crate::lang::{Lang, LangScores};
 
-
 pub struct Identifier {
-    charmodel: Arc<Model>,
-    wordmodel: Arc<Model>,
+    models: Arc<Models>,
     regex_non_alpha: Regex,
     _regex_spaces: Regex,
     use_confidence: bool,
@@ -29,18 +27,17 @@ impl Identifier {
     const PENALTY_VALUE : f32 = 7.0;
     const MAX_NGRAM : usize = 6;
 
-    pub fn new(gramref: Arc<Model>, wordref: Arc<Model>) -> Self {
-        let wordmodel = wordref.clone();
-        let charmodel = gramref.clone();
-        assert!(wordmodel.model_type == ModelType::Word);
-        assert!(charmodel.model_type == ModelType::Char);
+    pub fn load(modelpath: &str) -> Self {
+        Self::new(Arc::new(Models::load(modelpath)))
+    }
+
+    pub fn new(models: Arc<Models>) -> Self {
         let regex_non_alpha = Regex::new(r#"[^#gc\p{L}\p{M}′'’´ʹािीुूृेैोौंँः् া ি ী ু ূ ৃ ে ৈ ো ৌ।্্্я̄\u07A6\u07A7\u07A8\u07A9\u07AA\u07AB\u07AC\u07AD\u07AE\u07AF\u07B0\u0A81\u0A82\u0A83\u0ABC\u0ABD\u0ABE\u0ABF\u0AC0\u0AC1\u0AC2\u0AC3\u0AC4\u0AC5\u0AC6\u0AC7\u0AC8\u0AC9\u0ACA\u0ACB\u0ACC\u0ACD\u0AD0\u0AE0\u0AE1\u0AE2\u0AE3\u0AE4\u0AE5\u0AE6\u0AE7\u0AE8\u0AE9\u0AEA\u0AEB\u0AEC\u0AED\u0AEE\u0AEF\u0AF0\u0AF1]"#)
             .expect("Error compiling non-alpha regex for Idenfifier");
 
 
         Self {
-            charmodel: charmodel,
-            wordmodel: wordmodel,
+            models: models,
             regex_non_alpha: regex_non_alpha,
             _regex_spaces: Regex::new("  *").expect("Error compiling repeated spaces regex for Identifier"),
             use_confidence: false,
@@ -151,13 +148,13 @@ impl Identifier {
             mystery_length += word.chars().count(); //TODO move this to the cjk count above? .chars() iterator is expensive
             self.word_scores.reset();
 
-            if self.wordmodel.dic.contains_key(word) {
+            if self.models[0].dic.contains_key(word) {
                 // found the word in language model
                 // update scores according to each lang that has the word
                 // use penalty value for langs that don't have the word
                 word_scored = true;
                 debug!("word scored");
-                let kiepro = &self.wordmodel.dic[word];
+                let kiepro = &self.models[0].dic[word];
                 debug!("{:?}", kiepro);
                 for lang in Lang::iter() {
                     if kiepro.contains_key(&lang) {
@@ -187,11 +184,11 @@ impl Identifier {
                 // shingles manages ngram extraction automatically
                 // if word has less chars than current ngram size, it won't do nothing
                 for gram in wordspace.as_shingles(t) {
-                    if self.charmodel.dic.contains_key(gram) {
+                    if self.models[t].dic.contains_key(gram) {
                         debug!("Word scored in ngram '{gram}'");
                         grammaara += 1;
                         word_scored = true;
-                        let kiepro = &self.charmodel.dic[gram];
+                        let kiepro = &self.models[t].dic[gram];
                         for lang in Lang::iter() {
                             score = self.word_scores.get(lang);
                             if kiepro.contains_key(&lang) {
@@ -204,7 +201,7 @@ impl Identifier {
                 }
 
                 if word_scored {
-                    // Normalize wordscores by the number of ngrams found in charmodel
+                    // Normalize wordscores by the number of ngrams found in ngram models
                     debug!("Word scores: {:?}", self.word_scores);
                     self.word_scores.norm(grammaara as f32);
                 }
@@ -239,6 +236,7 @@ impl Identifier {
 
         self.rank_langs()
     }
+
 }
 
 #[cfg(test)]

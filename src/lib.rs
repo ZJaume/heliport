@@ -1,12 +1,11 @@
 use std::io::{self, BufRead};
-use std::sync::Arc;
 use std::path::Path;
-use std::thread;
 use std::env;
 
 use pyo3::prelude::*;
 use log::{info, debug};
 use env_logger::Env;
+use strum::IntoEnumIterator;
 
 use crate::languagemodel::{Model, ModelType};
 use crate::identifier::Identifier;
@@ -16,9 +15,6 @@ pub mod languagemodel;
 pub mod identifier;
 pub mod lang;
 mod utils;
-
-const WORDMODEL_FILE: &str = "wordmodel.bin";
-const CHARMODEL_FILE: &str = "charmodel.bin";
 
 // Call python interpreter and obtain python path of our module
 pub fn module_path() -> PyResult<String> {
@@ -35,24 +31,6 @@ pub fn module_path() -> PyResult<String> {
     })
 }
 
-pub fn load_models(modelpath: &str) -> (Model, Model) {
-    let grampath = format!("{modelpath}/{CHARMODEL_FILE}");
-    let char_handle = thread::spawn(move || {
-        let path = Path::new(&grampath);
-        Model::from_bin(path)
-    });
-
-    let wordpath = format!("{modelpath}/{WORDMODEL_FILE}");
-    let word_handle = thread::spawn(move || {
-        let path = Path::new(&wordpath);
-        Model::from_bin(path)
-    });
-    let charmodel = char_handle.join().unwrap();
-    let wordmodel = word_handle.join().unwrap();
-
-    (charmodel, wordmodel)
-}
-
 /// Bindings to Python
 #[pyclass(name = "Identifier")]
 pub struct PyIdentifier {
@@ -64,11 +42,7 @@ impl PyIdentifier {
     #[new]
     fn new() -> Self {
         let modulepath = module_path().expect("Error loading python module path");
-        let (charmodel, wordmodel) = load_models(&modulepath);
-        let identifier = Identifier::new(
-            Arc::new(charmodel),
-            Arc::new(wordmodel),
-        );
+        let identifier = Identifier::load(&modulepath);
 
         Self {
             inner: identifier,
@@ -90,11 +64,7 @@ impl PyIdentifier {
 pub fn cli_run() -> PyResult<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let modulepath = module_path().expect("Error loading python module path");
-    let (charmodel, wordmodel) = load_models(&modulepath);
-    let mut identifier = Identifier::new(
-            Arc::new(charmodel),
-            Arc::new(wordmodel),
-    );
+    let mut identifier = Identifier::load(&modulepath);
 
     let stdin = io::stdin();
 
@@ -113,14 +83,12 @@ pub fn cli_download() -> PyResult<()> {
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"));
 
-    utils::download_file(
-        &format!("{url}/{WORDMODEL_FILE}"),
-        &format!("{modulepath}/{WORDMODEL_FILE}")
-    ).unwrap();
-    utils::download_file(
-        &format!("{url}/{CHARMODEL_FILE}"),
-        &format!("{modulepath}/{CHARMODEL_FILE}")
-    ).unwrap();
+    for model_type in ModelType::iter() {
+        utils::download_file(
+            &format!("{url}/{model_type}.bin"),
+            &format!("{modulepath}/{model_type}.bin")
+        ).unwrap();
+    }
     info!("Finished");
 
     Ok(())
@@ -133,17 +101,14 @@ pub fn cli_convert() -> PyResult<()> {
     debug!("Module path found: {}", modulepath);
     let modelpath = Path::new("./LanguageModels");
 
-    info!("Loading wordmodel");
-    let wordmodel = Model::from_text(modelpath, ModelType::Word);
-    let savepath = format!("{modulepath}/wordmodel.bin");
-    info!("Saving wordmodel");
-    wordmodel.save(Path::new(&savepath));
-
-    info!("Loading charmodel");
-    let charmodel = Model::from_text(modelpath, ModelType::Char);
-    let savepath = format!("{modulepath}/charmodel.bin");
-    info!("Saving charmodel");
-    charmodel.save(Path::new(&savepath));
+    for model_type in ModelType::iter() {
+        let type_repr = model_type.to_string();
+        info!("Loading {type_repr} model");
+        let model = Model::from_text(modelpath, model_type);
+        let savepath = format!("{modulepath}/{type_repr}.bin");
+        info!("Saving {type_repr} model");
+        model.save(Path::new(&savepath));
+    }
 
     Ok(())
 }

@@ -1,10 +1,13 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::BuildHasherDefault;
 use std::io::{Write, Read};
-use std::path::Path;
 use std::fs::{self, File};
+use std::path::Path;
+use std::ops::Index;
+use std::thread;
 
-use strum::IntoEnumIterator;
+use strum::{IntoEnumIterator, Display, EnumCount};
+use strum_macros::EnumIter;
 use log::{debug, warn};
 use bitcode;
 
@@ -13,10 +16,17 @@ type MyHasher = BuildHasherDefault<WyHash>;
 
 use crate::lang::Lang;
 
-#[derive(bitcode::Encode, bitcode::Decode, Debug, PartialEq)]
+#[derive(bitcode::Encode, bitcode::Decode, EnumIter, Display, EnumCount,
+         Debug, PartialEq, Clone, Copy)]
+#[strum(serialize_all = "lowercase")]
 pub enum ModelType {
     Word,
-    Char
+    Unigram,
+    Bigram,
+    Trigram,
+    Quadgram,
+    Quingram,
+    Hexagram,
 }
 
 
@@ -37,7 +47,7 @@ impl Model {
     pub fn from_text(model_dir: &Path, model_type: ModelType) -> Self {
         let mut model = Model {
             dic: HashMap::default(),
-            model_type: model_type
+            model_type: model_type.clone()
         };
 
         // Open languagelist for this model
@@ -55,16 +65,8 @@ impl Model {
                 continue;
             }
 
-            if let ModelType::Char = model.model_type {
-                model.read_model(&model_dir.join(format!("{lang_repr}.LowGramModel1")), &lang);
-                model.read_model(&model_dir.join(format!("{lang_repr}.LowGramModel2")), &lang);
-                model.read_model(&model_dir.join(format!("{lang_repr}.LowGramModel3")), &lang);
-                model.read_model(&model_dir.join(format!("{lang_repr}.LowGramModel4")), &lang);
-                model.read_model(&model_dir.join(format!("{lang_repr}.LowGramModel5")), &lang);
-                model.read_model(&model_dir.join(format!("{lang_repr}.LowGramModel6")), &lang);
-            } else {
-                model.read_model(&model_dir.join(format!("{lang_repr}.LowWordModel")), &lang);
-            }
+            let type_repr = model_type.to_string();
+            model.read_model(&model_dir.join(format!("{lang_repr}.{type_repr}.model")), &lang);
         }
 
         // we give language_list here, otherwise cannot call mutable borrow 'model.read_model' above
@@ -145,8 +147,52 @@ impl Model {
         // Write serialized bytes to the compressor
         file.write_all(&serialized).expect("Error writing serialized model");
     }
-
 }
+
+pub struct Models {
+    inner: [Model; ModelType::COUNT],
+}
+
+impl Models {
+    pub fn load(modelpath: &str) -> Self {
+        // Run a separated thread to load each model
+        // check model type is correct
+        let mut handles = Vec::new();
+        for model_type in ModelType::iter() {
+            let type_repr = model_type.to_string();
+            let filename = format!("{modelpath}/{type_repr}.bin");
+            handles.push(thread::spawn(move || {
+                let path = Path::new(&filename);
+                let model = Model::from_bin(path);
+                assert!(model.model_type == model_type);
+                model
+            }));
+        }
+
+        Self {
+            // remove first position because after removal, the vec is reindexed
+            inner: [
+                handles.remove(0).join().unwrap(),
+                handles.remove(0).join().unwrap(),
+                handles.remove(0).join().unwrap(),
+                handles.remove(0).join().unwrap(),
+                handles.remove(0).join().unwrap(),
+                handles.remove(0).join().unwrap(),
+                handles.remove(0).join().unwrap(),
+            ]
+        }
+    }
+}
+
+// to avoid calling inner value
+impl Index<usize> for Models {
+    type Output = Model;
+
+    fn index(&self, num: usize) -> &Self::Output {
+        &self.inner[num]
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -162,7 +208,7 @@ mod tests {
         let path = Path::new("wordict.ser");
         wordmodel.save(path);
 
-        let charmodel = Model::from_text(&modelpath, ModelType::Char);
+        let charmodel = Model::from_text(&modelpath, ModelType::Quadgram);
         let path = Path::new("gramdict.ser");
         charmodel.save(path);
 
