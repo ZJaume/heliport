@@ -51,6 +51,10 @@ jobs:
           args: --release --out dist --find-interpreter
           sccache: 'true'
           manylinux: auto
+
+      - run: pip install dist/*-cp38-*.whl
+      - run: heliport-convert
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
