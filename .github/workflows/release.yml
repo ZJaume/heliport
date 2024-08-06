@@ -29,6 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
+        id: setup-python
         with:
           python-version: 3.8
       - name: Build wheels
@@ -60,6 +61,11 @@ jobs:
         with:
           name: wheels-linux-${{ matrix.platform.target }}
           path: dist
+      - name: Upload models
+        uses: actions/upload-artifact@v4
+        with:
+          name: models-linux-${{ matrix.platform.target }}
+          path: /opt/hostedtoolcache/Python/${{ steps.setup-python.outputs.python-version }}/x64/lib/python3.8/site-packages/heliport/*.bin
 
   sdist:
     runs-on: ubuntu-22.04
