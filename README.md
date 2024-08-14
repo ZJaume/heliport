@@ -64,3 +64,14 @@ let identifier = Identifier::new(
 let lang, score = identifier.identify("L'aigua clara");
 assert_eq!(lang, Lang::cat_Latn);
 ```
+
+## Benchmarks
+Speed benchmarks with 100k random sentences from [OpenLID](https://github.com/laurieburchell/open-lid-dataset), all the tools running single-threaded:
+| tool | time (s) |
+| :--------- | ---------: |
+| CLD2 | 1.12 |
+| HeLI-OTS | 60.37 |
+| lingua all high preloaded | 56.29 |
+| lingua all low preloaded | 23.34
+| fasttext openlid193 | 8.44 |
+| heliport | 4.72 |
