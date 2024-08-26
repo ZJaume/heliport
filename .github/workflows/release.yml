@@ -101,3 +101,9 @@ jobs:
         with:
           command: upload
           args: --non-interactive --skip-existing wheels-*/*
+      - name: Archive model files
+        run: for i in models-*; do tar czvf $i.tgz $i/*; done
+      - name: Upload Github release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: models-*.tgz
