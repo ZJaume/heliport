@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
+use std::io;
 
 use ordered_float::OrderedFloat;
 use strum::{IntoEnumIterator};
@@ -27,8 +28,8 @@ impl Identifier {
     const PENALTY_VALUE : f32 = 7.0;
     const MAX_NGRAM : usize = 6;
 
-    pub fn load(modelpath: &str) -> Self {
-        Self::new(Arc::new(Models::load(modelpath)))
+    pub fn load(modelpath: &str) -> io::Result<Self> {
+        Ok(Self::new(Arc::new(Models::load(modelpath)?)))
     }
 
     pub fn new(models: Arc<Models>) -> Self {

@@ -1,4 +1,5 @@
 use std::process::{exit, Command};
+use std::io;
 use std::fs;
 
 use log::{info, debug, error};
@@ -88,4 +89,20 @@ async fn download_file_and_extract_async(url: &str, extractpath: &str) -> Result
 pub fn download_file_and_extract(url: &str, extractpath: &str) -> Result<(), Box<dyn std::error::Error>> {
     let runtime = Runtime::new()?;
     runtime.block_on(download_file_and_extract_async(url, extractpath))
+}
+
+// Trait that extracts the contained ok value or aborts if error
+// sending the error message to the log
+pub trait Abort<T> {
+    fn or_abort(self, exit_code: i32) -> T;
+}
+
+impl<T> Abort<T> for io::Result<T>
+{
+    fn or_abort(self, exit_code: i32) -> T {
+        match self {
+            Ok(v) => v,
+            Err(e) => { error!("{e}"); exit(exit_code); },
+        }
+    }
 }

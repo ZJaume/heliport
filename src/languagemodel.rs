@@ -1,15 +1,14 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::BuildHasherDefault;
-use std::io::{Write, Read};
+use std::io::{self, Write, Read};
 use std::fs::{self, File};
-use std::process::exit;
 use std::path::Path;
 use std::ops::Index;
 use std::thread;
 
 use strum::{IntoEnumIterator, Display, EnumCount};
 use strum_macros::EnumIter;
-use log::{debug, warn, error};
+use log::{debug, warn};
 use bitcode;
 
 use wyhash2::WyHash;
@@ -128,25 +127,24 @@ impl Model {
     }
 
     // Create a new struct reading from a binary file
-    pub fn from_bin(p: &str) -> Self {
-        let mut file = File::open(p).expect(
-            format!("Error cannot open file {p:?}").as_str());
+    pub fn from_bin(p: &str) -> io::Result<Self> {
+        let mut file = File::open(p)?;
         let mut content = Vec::new();
-        let _ = file.read_to_end(&mut content).unwrap();
+        let _ = file.read_to_end(&mut content)?;
 
-        bitcode::decode(&content).unwrap()
+        // should find a way to propagate possible bitcode errors?
+        Ok(bitcode::decode(&content).unwrap())
     }
 
     // Save the struct in binary format
     // take ownership of the struct
-    pub fn save(self, p: &Path) {
+    pub fn save(self, p: &Path) -> io::Result<()> {
         // Create file
-        let mut file = File::create(p).expect(
-            format!("Error cannot write to file {p:?}").as_str());
+        let mut file = File::create(p)?;
 
         let serialized = bitcode::encode(&self);
         // Write serialized bytes to the compressor
-        file.write_all(&serialized).expect("Error writing serialized model");
+        file.write_all(&serialized)
     }
 }
 
@@ -155,40 +153,42 @@ pub struct Models {
 }
 
 impl Models {
-    pub fn load(modelpath: &str) -> Self {
+    pub fn load(modelpath: &str) -> io::Result<Self> {
         // Run a separated thread to load each model
-        // check model type is correct
         let mut handles: Vec<thread::JoinHandle<_>> = Vec::new();
         for model_type in ModelType::iter() {
             let type_repr = model_type.to_string();
             let filename = format!("{modelpath}/{type_repr}.bin");
+
+            // If a model does not exist, fail early
             let path = Path::new(&filename);
             if !path.exists() {
-                error!("Model file '{}' could not be found", filename);
+                let message = format!("Model file '{}' could not be found", filename);
                 for h in handles {
-                    let _ = h.join();
+                    let _ = h.join().unwrap()?;
                 }
-                exit(1);
+                return Err(io::Error::new(io::ErrorKind::NotFound, message));
             }
             handles.push(thread::spawn(move || {
-                let model = Model::from_bin(&filename);
+                let model = Model::from_bin(&filename)?;
+                // check model type is correct
                 assert!(model.model_type == model_type);
-                model
+                Ok::<Model, io::Error>(model)
             }));
         }
 
-        Self {
+        Ok(Self {
             // remove first position because after removal, the vec is reindexed
             inner: [
-                handles.remove(0).join().unwrap(),
-                handles.remove(0).join().unwrap(),
-                handles.remove(0).join().unwrap(),
-                handles.remove(0).join().unwrap(),
-                handles.remove(0).join().unwrap(),
-                handles.remove(0).join().unwrap(),
-                handles.remove(0).join().unwrap(),
+                handles.remove(0).join().unwrap()?,
+                handles.remove(0).join().unwrap()?,
+                handles.remove(0).join().unwrap()?,
+                handles.remove(0).join().unwrap()?,
+                handles.remove(0).join().unwrap()?,
+                handles.remove(0).join().unwrap()?,
+                handles.remove(0).join().unwrap()?,
             ]
-        }
+        })
     }
 }
 

@@ -10,6 +10,7 @@ use target;
 
 use crate::languagemodel::{Model, ModelType};
 use crate::identifier::Identifier;
+use crate::utils::Abort;
 
 
 pub mod languagemodel;
@@ -42,13 +43,13 @@ pub struct PyIdentifier {
 #[pymethods]
 impl PyIdentifier {
     #[new]
-    fn new() -> Self {
+    fn new() -> PyResult<Self> {
         let modulepath = module_path().expect("Error loading python module path");
-        let identifier = Identifier::load(&modulepath);
+        let identifier = Identifier::load(&modulepath)?;
 
-        Self {
+        Ok(Self {
             inner: identifier,
-        }
+        })
     }
 
     fn identify(&mut self, text: &str) -> String {
@@ -66,7 +67,7 @@ impl PyIdentifier {
 pub fn cli_run() -> PyResult<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let modulepath = module_path().expect("Error loading python module path");
-    let mut identifier = Identifier::load(&modulepath);
+    let mut identifier = Identifier::load(&modulepath).or_abort(1);
 
     let stdin = io::stdin();
 
@@ -106,7 +107,7 @@ pub fn cli_compile() -> PyResult<()> {
         let model = Model::from_text(modelpath, model_type);
         let savepath = format!("{modulepath}/{type_repr}.bin");
         info!("Saving {type_repr} model");
-        model.save(Path::new(&savepath));
+        model.save(Path::new(&savepath))?;
     }
     info!("Saved models at '{}'", modulepath);
     info!("Finished");
