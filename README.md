@@ -3,7 +3,7 @@ A language identification tool that aims to be both fast and accurate.
 Originally started as a [HeLI-OTS](https://aclanthology.org/2022.lrec-1.416/) port to Rust.
 
 ## Installation
-### From PyPi (not available yet)
+### From PyPi
 Install it in your environment
 ```
 pip install heliport
