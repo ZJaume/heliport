@@ -6,6 +6,7 @@ use pyo3::prelude::*;
 use log::{info, debug};
 use env_logger::Env;
 use strum::IntoEnumIterator;
+use target;
 
 use crate::languagemodel::{Model, ModelType};
 use crate::identifier::Identifier;
@@ -30,6 +31,7 @@ pub fn module_path() -> PyResult<String> {
         Ok(path)
     })
 }
+
 
 /// Bindings to Python
 #[pyclass(name = "Identifier")]
@@ -79,16 +81,13 @@ pub fn cli_download() -> PyResult<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let modulepath = module_path().expect("Error loading python module path");
     let url = format!(
-        "https://github.com/ZJaume/{}/releases/download/v{}",
+        "https://github.com/ZJaume/{}/releases/download/v{}/models-{}-{}.tgz",
         env!("CARGO_PKG_NAME"),
-        env!("CARGO_PKG_VERSION"));
+        env!("CARGO_PKG_VERSION"),
+        target::os(),
+        target::arch());
 
-    for model_type in ModelType::iter() {
-        utils::download_file(
-            &format!("{url}/{model_type}.bin"),
-            &format!("{modulepath}/{model_type}.bin")
-        ).unwrap();
-    }
+    utils::download_file_and_extract(&url, &modulepath).unwrap();
     info!("Finished");
 
     Ok(())
