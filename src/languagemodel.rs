@@ -2,13 +2,14 @@ use std::collections::{HashMap, HashSet};
 use std::hash::BuildHasherDefault;
 use std::io::{Write, Read};
 use std::fs::{self, File};
+use std::process::exit;
 use std::path::Path;
 use std::ops::Index;
 use std::thread;
 
 use strum::{IntoEnumIterator, Display, EnumCount};
 use strum_macros::EnumIter;
-use log::{debug, warn};
+use log::{debug, warn, error};
 use bitcode;
 
 use wyhash2::WyHash;
@@ -127,7 +128,7 @@ impl Model {
     }
 
     // Create a new struct reading from a binary file
-    pub fn from_bin(p: &Path) -> Self {
+    pub fn from_bin(p: &str) -> Self {
         let mut file = File::open(p).expect(
             format!("Error cannot open file {p:?}").as_str());
         let mut content = Vec::new();
@@ -157,13 +158,20 @@ impl Models {
     pub fn load(modelpath: &str) -> Self {
         // Run a separated thread to load each model
         // check model type is correct
-        let mut handles = Vec::new();
+        let mut handles: Vec<thread::JoinHandle<_>> = Vec::new();
         for model_type in ModelType::iter() {
             let type_repr = model_type.to_string();
             let filename = format!("{modelpath}/{type_repr}.bin");
+            let path = Path::new(&filename);
+            if !path.exists() {
+                error!("Model file '{}' could not be found", filename);
+                for h in handles {
+                    let _ = h.join();
+                }
+                exit(1);
+            }
             handles.push(thread::spawn(move || {
-                let path = Path::new(&filename);
-                let model = Model::from_bin(path);
+                let model = Model::from_bin(&filename);
                 assert!(model.model_type == model_type);
                 model
             }));
