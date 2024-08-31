@@ -149,17 +149,16 @@ impl Identifier {
             mystery_length += word.chars().count(); //TODO move this to the cjk count above? .chars() iterator is expensive
             self.word_scores.reset();
 
-            if self.models[0].dic.contains_key(word) {
+            if let Some(kiepro) = self.models[0].dic.get(word) {
                 // found the word in language model
                 // update scores according to each lang that has the word
                 // use penalty value for langs that don't have the word
                 word_scored = true;
                 debug!("word scored");
-                let kiepro = &self.models[0].dic[word];
                 debug!("{:?}", kiepro);
                 for lang in Lang::iter() {
-                    if kiepro.contains_key(&lang) {
-                        self.word_scores.insert(lang.clone(), kiepro[&lang]);
+                    if let Some(prob) = kiepro.get(&lang) {
+                        self.word_scores.insert(lang.clone(), *prob);
                     } else {
                         self.word_scores.insert(lang.clone(), Self::PENALTY_VALUE);
                     }
@@ -174,6 +173,7 @@ impl Identifier {
             // language
             //TODO does it make sense to explore ngrams longer than the current word?
             let mut score;
+            //TODO break before this format! it is expensive
             let wordspace = format!(" {word} ");
             for t in (1..Self::MAX_NGRAM+1).rev() {
                 if word_scored {
@@ -185,15 +185,14 @@ impl Identifier {
                 // shingles manages ngram extraction automatically
                 // if word has less chars than current ngram size, it won't do nothing
                 for gram in wordspace.as_shingles(t) {
-                    if self.models[t].dic.contains_key(gram) {
+                    if let Some(kiepro) = self.models[t].dic.get(gram) {
                         debug!("Word scored in ngram '{gram}'");
                         grammaara += 1;
                         word_scored = true;
-                        let kiepro = &self.models[t].dic[gram];
                         for lang in Lang::iter() {
                             score = self.word_scores.get(lang);
-                            if kiepro.contains_key(&lang) {
-                                self.word_scores.insert(lang.clone(), score + kiepro[&lang]);
+                            if let Some(prob) = kiepro.get(&lang) {
+                                self.word_scores.insert(lang.clone(), score + prob);
                             } else {
                                 self.word_scores.insert(lang.clone(), score + Self::PENALTY_VALUE);
                             }
