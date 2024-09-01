@@ -122,6 +122,7 @@ impl Identifier {
         let mut last_was_space = false;
         let mut cjk_num_chars = 0_usize;
         let mut mystery_text = String::with_capacity(replaced.len());
+        let mut mystery_length = 0;
 
         for mystery_char in replaced.chars() {
             let charset = match unicode_blocks::find_unicode_block(mystery_char) {
@@ -147,6 +148,9 @@ impl Identifier {
                 last_was_space = mystery_char == ' ';
                 last_was_cjk = false;
             }
+            if !last_was_space {
+                mystery_length += 1;
+            }
             mystery_text.push(mystery_char);
         }
 
@@ -170,11 +174,9 @@ impl Identifier {
 
         let mut word_scored;
         let mut num_words = 0;
-        let mut mystery_length = 0;
         for word in words {
             debug!("Scoring '{}'", word);
             num_words += 1;
-            mystery_length += word.chars().count(); //TODO move this to the cjk count above? .chars() iterator is expensive
             self.word_scores.reset();
             word_scored = self.score_gram(word, 0);
 
@@ -222,14 +224,18 @@ impl Identifier {
         // Normalize lang points and apply penalties if more than 50% is CJK
         //TODO try to simplify this
         // the CJK fix could just finish early?
+        let cjk_pct;
+        if mystery_length == 0 {
+            cjk_pct = 0;
+        } else {
+            cjk_pct = 100 / mystery_length * cjk_num_chars
+        }
         for lang in Lang::iter() {
             let lang_score_norm = self.lang_points.get(lang) / num_words as f32;
             self.lang_points.insert(lang, lang_score_norm);
 
-            if (100 / mystery_length * cjk_num_chars) > 50 {
-                if !lang.is_cjk() {
-                    self.lang_points.insert(lang, Self::PENALTY_VALUE + 1.0);
-                }
+            if cjk_pct > 50 && !lang.is_cjk() {
+                self.lang_points.insert(lang, Self::PENALTY_VALUE + 1.0);
             }
         }
         debug!("Normalized lang points: {:?}", self.lang_points);

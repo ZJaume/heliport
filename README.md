@@ -74,4 +74,4 @@ Speed benchmarks with 100k random sentences from [OpenLID](https://github.com/la
 | lingua all high preloaded | 56.29 |
 | lingua all low preloaded | 23.34
 | fasttext openlid193 | 8.44 |
-| heliport | 4.72 |
+| heliport | 2.33 |
