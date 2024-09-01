@@ -105,6 +105,8 @@ pub fn cli_compile() -> PyResult<()> {
         let type_repr = model_type.to_string();
         info!("Loading {type_repr} model");
         let model = Model::from_text(modelpath, model_type);
+        let size = model.dic.len();
+        info!("Created {size} entries");
         let savepath = format!("{modulepath}/{type_repr}.bin");
         info!("Saving {type_repr} model");
         model.save(Path::new(&savepath))?;
