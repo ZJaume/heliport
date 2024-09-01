@@ -1,4 +1,5 @@
 #![allow(non_camel_case_types)]
+use std::ops::Index;
 use std::fmt;
 
 use strum::{EnumString, EnumCount, Display, FromRepr};
@@ -75,6 +76,10 @@ macro_rules! lang_scores {
             self.inner[lang as usize]
         }
 
+        pub fn add_index(&mut self, index: usize, score: f32) {
+            self.inner[index] += score;
+        }
+
         pub fn insert(&mut self, lang: $lang, score: f32) {
             self.inner[lang as usize] = score;
         }
@@ -115,4 +120,55 @@ macro_rules! lang_scores {
 };
 }
 
+macro_rules! lang_bitmap {
+($name: ident, $lang: ident, $size: expr) => {
+    pub struct $name {
+        inner: [bool; $size],
+    }
+
+    impl $name {
+        pub fn new() -> Self {
+            Self { inner: [false; $size] }
+        }
+
+        pub fn get(&self, lang: &$lang) -> bool {
+            self.inner[*lang as usize]
+        }
+
+        pub fn set(&mut self, lang: &$lang, val: bool) {
+            self.inner[*lang as usize] = val;
+        }
+
+        // Reset all values to 0
+        pub fn reset(&mut self) {
+            for i in 0..$size {
+                self.inner[i] = false;
+            }
+        }
+    }
+
+    impl Index<usize> for $name {
+        type Output = bool;
+
+        fn index(&self, index: usize) -> &bool {
+            &self.inner[index]
+        }
+    }
+
+    impl fmt::Debug for $name {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "{{")?;
+            for (i, val) in self.inner.iter().enumerate() {
+                if i != 0 {
+                    write!(f," ")?;
+                }
+                write!(f, "{}={}", $lang::from_repr(i as u8).unwrap(), val)?;
+            }
+            write!(f, "}}")
+        }
+    }
+};
+}
+
 lang_scores!(LangScores, Lang, Lang::COUNT);
+lang_bitmap!(LangBitmap, Lang, Lang::COUNT);

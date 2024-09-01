@@ -32,7 +32,7 @@ pub enum ModelType {
 
 #[derive(bitcode::Encode, bitcode::Decode, Debug, PartialEq)]
 pub struct Model {
-    pub dic: HashMap<String, HashMap<Lang, f32, MyHasher>, MyHasher>,
+    pub dic: HashMap<String, Vec<(Lang, f32)>, MyHasher>,
     pub model_type: ModelType,
 }
 
@@ -116,12 +116,13 @@ impl Model {
         for (gram, amount) in temp_dict {
             prob = -(amount as f32 / langamount as f32).log10();
             if self.dic.contains_key(&gram) {
-                let inner_map = self.dic.get_mut(&gram).unwrap();
-                inner_map.insert(langcode.clone(), prob);
+                let inner_vec = self.dic.get_mut(&gram).unwrap();
+                inner_vec.push((langcode.clone(), prob));
+                inner_vec.shrink_to_fit();
             } else {
-                let mut inner_map = HashMap::default();
-                inner_map.insert(langcode.clone(), prob);
-                self.dic.insert(gram, inner_map);
+                let mut inner_vec = Vec::new();
+                inner_vec.push((langcode.clone(), prob));
+                self.dic.insert(gram, inner_vec);
             }
         }
     }

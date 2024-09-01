@@ -3,14 +3,14 @@ use std::sync::Arc;
 use std::io;
 
 use ordered_float::OrderedFloat;
-use strum::{IntoEnumIterator};
+use strum::{IntoEnumIterator, EnumCount};
 use shingles::AsShingles;
 use unicode_blocks;
 use regex::Regex;
 use log::{debug,warn};
 
 use crate::languagemodel::{Models};
-use crate::lang::{Lang, LangScores};
+use crate::lang::{Lang, LangScores, LangBitmap};
 
 pub struct Identifier {
     models: Arc<Models>,
@@ -18,6 +18,7 @@ pub struct Identifier {
     _regex_spaces: Regex,
     use_confidence: bool,
     number_top_langs: u16,
+    lang_scored: LangBitmap,
     lang_points: LangScores,
     word_scores: LangScores,
     heli_score: BTreeMap<OrderedFloat<f32>, Vec<Lang>>,
@@ -43,6 +44,7 @@ impl Identifier {
             _regex_spaces: Regex::new("  *").expect("Error compiling repeated spaces regex for Identifier"),
             use_confidence: false,
             number_top_langs: 1,
+            lang_scored: LangBitmap::new(),
             lang_points: LangScores::new(),
             word_scores: LangScores::new(),
             heli_score: BTreeMap::new(),
@@ -79,6 +81,33 @@ impl Identifier {
         // comment because useless in openlid data for now
         // winner_tuple.0 = winner_tuple.0.macrolang();
         winner_tuple
+    }
+
+    // Update scores according to currend ngram probability if found
+    fn score_gram(&mut self, gram: &str, dic_id: usize) -> bool {
+        if let Some(kiepro) = self.models[dic_id].dic.get(gram) {
+            // found the word in language model
+            // update scores according to each lang that has the word
+            // use penalty value for langs that don't have the word
+            debug!("word scored '{gram}'");
+            debug!("{:?}", kiepro);
+            self.lang_scored.reset();
+            let mut score;
+            // Score the langs that have probabilities for this ngram
+            for (lang, prob) in kiepro {
+                score = self.word_scores.get(*lang);
+                self.word_scores.insert(lang.clone(), score + *prob);
+                self.lang_scored.set(lang, true);
+            }
+            // Penalize all the languages that do not have probabilities for this ngram
+            for i in 0..Lang::COUNT {
+                if !self.lang_scored[i] {
+                    self.word_scores.add_index(i, Self::PENALTY_VALUE);
+                }
+            }
+            return true;
+        }
+        false
     }
 
     pub fn identify(&mut self, text: &str) -> (Lang, Option<f32>) {
@@ -144,66 +173,37 @@ impl Identifier {
         let mut mystery_length = 0;
         for word in words {
             debug!("Scoring '{}'", word);
-            word_scored = false;
             num_words += 1;
             mystery_length += word.chars().count(); //TODO move this to the cjk count above? .chars() iterator is expensive
             self.word_scores.reset();
-
-            if let Some(kiepro) = self.models[0].dic.get(word) {
-                // found the word in language model
-                // update scores according to each lang that has the word
-                // use penalty value for langs that don't have the word
-                word_scored = true;
-                debug!("word scored");
-                debug!("{:?}", kiepro);
-                for lang in Lang::iter() {
-                    if let Some(prob) = kiepro.get(&lang) {
-                        self.word_scores.insert(lang.clone(), *prob);
-                    } else {
-                        self.word_scores.insert(lang.clone(), Self::PENALTY_VALUE);
-                    }
-                }
-            }
-
-            if !word_scored {
-                debug!("Word has not been found");
-            }
+            word_scored = self.score_gram(word, 0);
 
             // Go from highest order ngram to lowest until one of the orders is found in any
             // language
             //TODO does it make sense to explore ngrams longer than the current word?
-            let mut score;
-            //TODO break before this format! it is expensive
-            let wordspace = format!(" {word} ");
-            for t in (1..Self::MAX_NGRAM+1).rev() {
-                if word_scored {
-                    break;
-                }
+            if !word_scored {
+                debug!("Word has not been found");
+                let wordspace = format!(" {word} ");
+                for t in (1..Self::MAX_NGRAM+1).rev() {
+                    if word_scored {
+                        break;
+                    }
 
-                let mut grammaara = 0;
-                // Iterate over all possible ngrams of order t, over the current word
-                // shingles manages ngram extraction automatically
-                // if word has less chars than current ngram size, it won't do nothing
-                for gram in wordspace.as_shingles(t) {
-                    if let Some(kiepro) = self.models[t].dic.get(gram) {
-                        debug!("Word scored in ngram '{gram}'");
-                        grammaara += 1;
-                        word_scored = true;
-                        for lang in Lang::iter() {
-                            score = self.word_scores.get(lang);
-                            if let Some(prob) = kiepro.get(&lang) {
-                                self.word_scores.insert(lang.clone(), score + prob);
-                            } else {
-                                self.word_scores.insert(lang.clone(), score + Self::PENALTY_VALUE);
-                            }
+                    let mut grammaara = 0;
+                    // Iterate over all possible ngrams of order t, over the current word
+                    for gram in wordspace.as_shingles(t) {
+                        let cur_scored = self.score_gram(gram, t);
+                        grammaara += cur_scored as usize;
+                        if !word_scored && cur_scored {
+                            word_scored = true;
                         }
                     }
-                }
 
-                if word_scored {
-                    // Normalize wordscores by the number of ngrams found in ngram models
-                    debug!("Word scores: {:?}", self.word_scores);
-                    self.word_scores.norm(grammaara as f32);
+                    if word_scored {
+                        // Normalize wordscores by the number of ngrams found in ngram models
+                        debug!("Word scores: {:?}", self.word_scores);
+                        self.word_scores.norm(grammaara as f32);
+                    }
                 }
             }
 
