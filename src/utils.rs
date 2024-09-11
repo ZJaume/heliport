@@ -1,12 +1,13 @@
 use std::process::{exit, Command};
 use std::fs;
 
-use log::{info, debug, error};
+use log::{info, warn, debug, error};
 use tokio::io::AsyncWriteExt;
 use tokio::runtime::Runtime;
 use tokio::signal::unix;
 use futures_util::StreamExt;
 use tempfile::NamedTempFile;
+use anyhow::{bail, Context, Result};
 use reqwest;
 
 // Run a listener for cancel signals, if received terminate
@@ -30,7 +31,9 @@ async fn run_cancel_handler(filename: Option<String>) {
             if let Some(f) = filename {
                 // panic if cannot be deleted?
                 debug!("Cleaning temp: {}", f);
-                fs::remove_file(&f).unwrap();
+                if fs::remove_file(&f).is_err(){
+                    warn!("Could not remove temporary file: {f}");
+                }
             }
             exit(1);
         }
@@ -38,7 +41,7 @@ async fn run_cancel_handler(filename: Option<String>) {
 }
 
 // Download a file to a path
-async fn download_file_async(url: &str, filepath: &str) -> Result<(), Box<dyn std::error::Error>> {
+async fn download_file_async(url: &str, filepath: &str) -> Result<()> {
     info!("Downloading file from '{url}'");
     // Create a download stream
     let response = reqwest::get(url).await?;
@@ -62,11 +65,11 @@ async fn download_file_async(url: &str, filepath: &str) -> Result<(), Box<dyn st
 }
 
 // Download a .tgz file and extract it, async version
-async fn download_file_and_extract_async(url: &str, extractpath: &str) -> Result<(), Box<dyn std::error::Error>> {
+async fn download_file_and_extract_async(url: &str, extractpath: &str) -> Result<()> {
     let binding = NamedTempFile::new()?.into_temp_path();
     let temp_path = binding
         .to_str()
-        .ok_or("Error converting tempfile name to string")?;
+        .context("Error converting tempfile name to string")?;
     run_cancel_handler(Some(String::from(temp_path))).await;
     download_file_async(url, &temp_path).await?;
 
@@ -75,17 +78,18 @@ async fn download_file_and_extract_async(url: &str, extractpath: &str) -> Result
     debug!("Running command {:?}", command.get_args());
     let comm_output = command.output()?;
     debug!("Command status: {:?}", comm_output.status);
+    // If the command fails, return an error, containing command stderr output
     if !comm_output.status.success() {
-        return Err(format!("Command failed during execution: {}",
-                    std::str::from_utf8(&comm_output.stderr)?).into())
+        let stderr_out = String::from_utf8_lossy(&comm_output.stderr);
+        bail!("Command failed during execution: {stderr_out}");
     }
-    debug!("Command stderr: {}", std::str::from_utf8(&comm_output.stderr).unwrap());
-    debug!("Command stdout: {}", std::str::from_utf8(&comm_output.stdout).unwrap());
+    debug!("Command stderr: {}", std::str::from_utf8(&comm_output.stderr)?);
+    debug!("Command stdout: {}", std::str::from_utf8(&comm_output.stdout)?);
     Ok(())
 }
 
 // Download a .tgz file and extract it, call async version and block on it
-pub fn download_file_and_extract(url: &str, extractpath: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn download_file_and_extract(url: &str, extractpath: &str) -> Result<()> {
     let runtime = Runtime::new()?;
     runtime.block_on(download_file_and_extract_async(url, extractpath))
 }

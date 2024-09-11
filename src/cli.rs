@@ -48,12 +48,13 @@ impl BinarizeCmd {
         for model_type in ModelType::iter() {
             let type_repr = model_type.to_string();
             info!("Loading {type_repr} model");
-            let model = Model::from_text(&model_path, model_type);
+            let model = Model::from_text(&model_path, model_type)
+                .or_abort(1);
             let size = model.dic.len();
             info!("Created {size} entries");
             let filename = save_path.join(format!("{type_repr}.bin"));
             info!("Saving {type_repr} model");
-            model.save(Path::new(&filename))?;
+            model.save(Path::new(&filename)).or_abort(1);
         }
         info!("Saved models at '{}'", save_path.display());
         info!("Finished");
@@ -98,7 +99,7 @@ impl IdentifyCmd {
         let stdin = io::stdin();
 
         for line in stdin.lock().lines() {
-            println!("{}", identifier.identify(&line.unwrap()).0);
+            println!("{}", identifier.identify(&line?).0);
         }
         Ok(())
     }

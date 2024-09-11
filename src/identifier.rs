@@ -1,12 +1,12 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
-use std::io;
 
 use ordered_float::OrderedFloat;
 use strum::{IntoEnumIterator, EnumCount};
 use shingles::AsShingles;
 use unicode_blocks;
 use regex::Regex;
+use anyhow::Result;
 use log::{debug,warn};
 
 use crate::languagemodel::{Models};
@@ -29,7 +29,7 @@ impl Identifier {
     const PENALTY_VALUE : f32 = 7.0;
     const MAX_NGRAM : usize = 6;
 
-    pub fn load(modelpath: &str) -> io::Result<Self> {
+    pub fn load(modelpath: &str) -> Result<Self> {
         Ok(Self::new(Arc::new(Models::load(modelpath)?)))
     }
 

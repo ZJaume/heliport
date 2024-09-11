@@ -5,6 +5,7 @@ use pyo3::prelude::*;
 
 use crate::identifier::Identifier;
 use crate::cli::cli_run;
+use crate::utils::Abort;
 
 pub mod languagemodel;
 pub mod identifier;
@@ -39,7 +40,8 @@ impl PyIdentifier {
     #[new]
     fn new() -> PyResult<Self> {
         let modulepath = module_path().expect("Error loading python module path");
-        let identifier = Identifier::load(&modulepath.to_str().unwrap())?;
+        let identifier = Identifier::load(&modulepath.to_str().unwrap())
+            .or_abort(1);
 
         Ok(Self {
             inner: identifier,

@@ -9,6 +9,7 @@ use std::thread;
 use strum::{IntoEnumIterator, Display, EnumCount};
 use strum_macros::EnumIter;
 use log::{debug, warn};
+use anyhow::{Context, Result};
 use bitcode;
 
 use wyhash2::WyHash;
@@ -44,7 +45,7 @@ impl Model {
         self.dic.contains_key(key)
     }
 
-    pub fn from_text(model_dir: &Path, model_type: ModelType) -> Self {
+    pub fn from_text(model_dir: &Path, model_type: ModelType) -> Result<Self> {
         let mut model = Model {
             dic: HashMap::default(),
             model_type: model_type.clone()
@@ -52,7 +53,7 @@ impl Model {
 
         // Open languagelist for this model
         let lang_list = fs::read_to_string(model_dir.join("languagelist"))
-            .expect(format!("Could not find '{}/languagelist'", model_dir.display()).as_str());
+            .with_context(|| format!("Could not find '{}/languagelist'", model_dir.display()))?;
         let lang_list: HashSet<&str> = lang_list.split('\n').collect();
 
         // Load each type of language model
@@ -66,17 +67,17 @@ impl Model {
             }
 
             let type_repr = model_type.to_string();
-            model.read_model(&model_dir.join(format!("{lang_repr}.{type_repr}.model")), &lang);
+            model.read_model(&model_dir.join(format!("{lang_repr}.{type_repr}.model")), &lang)?;
         }
 
         // we give language_list here, otherwise cannot call mutable borrow 'model.read_model' above
-        model
+        Ok(model)
     }
 
-    fn read_model(&mut self, p: &Path, langcode: &Lang) {
+    fn read_model(&mut self, p: &Path, langcode: &Lang) -> Result<()> {
         // Read the language model file to a string all at once
-        let modelfile = fs::read_to_string(p).expect(
-            format!("Error reading file: {p:?}").as_str());
+        let modelfile = fs::read_to_string(p)
+            .with_context(|| format!("Error reading file: {p:?}"))?;
 
         let mut temp_dict: HashMap<_, _, MyHasher> = HashMap::default();
         let mut num_features = 0_u64;
@@ -89,15 +90,15 @@ impl Model {
         for (i, line) in modelfile.lines().enumerate() {
             // parse number of entries
             if i == 0 {
-                num_features = line.parse().expect(
-                    format!("Error parsing line {i} in file {p:?}").as_str());
+                num_features = line.parse()
+                    .with_context(|| format!("Error parsing line {i} in file {p:?}"))?;
                 continue;
             }
 
             // parse an entry with token and frequency
             let parts: Vec<&str> = line.split("\t").collect();
-            amount = parts[1].parse().expect(
-                format!("Error parsing line {i} in file {p:?}").as_str());
+            amount = parts[1].parse()
+                .with_context(|| format!("Error parsing line {i} in file {p:?}"))?;
             // insert into the map
             if (amount as f64 / num_features as f64) > Self::MAX_USED {
                 temp_dict.insert(String::from(parts[0]), amount);
@@ -115,37 +116,42 @@ impl Model {
         let mut prob;
         for (gram, amount) in temp_dict {
             prob = -(amount as f32 / langamount as f32).log10();
-            if self.dic.contains_key(&gram) {
-                let inner_vec = self.dic.get_mut(&gram).unwrap();
+            if let Some(inner_vec) = self.dic.get_mut(&gram) {
                 inner_vec.push((langcode.clone(), prob));
-                inner_vec.shrink_to_fit();
             } else {
                 let mut inner_vec = Vec::new();
                 inner_vec.push((langcode.clone(), prob));
                 self.dic.insert(gram, inner_vec);
             }
         }
+
+        Ok(())
     }
 
     // Create a new struct reading from a binary file
-    pub fn from_bin(p: &str) -> io::Result<Self> {
-        let mut file = File::open(p)?;
+    pub fn from_bin(p: &str) -> Result<Self> {
+        let mut file = File::open(p)
+            .with_context(|| format!("Could not open model file '{}'", p))?;
         let mut content = Vec::new();
-        let _ = file.read_to_end(&mut content)?;
+        let _ = file.read_to_end(&mut content)
+            .with_context(|| format!("Error during reading file '{}'", p))?;
 
         // should find a way to propagate possible bitcode errors?
-        Ok(bitcode::decode(&content).unwrap())
+        Ok(bitcode::decode(&content)
+           .with_context(|| "Could not deserialize model")?)
     }
 
     // Save the struct in binary format
     // take ownership of the struct
-    pub fn save(self, p: &Path) -> io::Result<()> {
+    pub fn save(self, p: &Path) -> Result<()> {
         // Create file
-        let mut file = File::create(p)?;
+        let mut file = File::create(p)
+            .with_context(|| format!("Could not open file for saving model: {}", p.display()))?;
 
         let serialized = bitcode::encode(&self);
         // Write serialized bytes to the compressor
         file.write_all(&serialized)
+           .with_context(|| format!("Error during writing file '{}'", p.display()))
     }
 }
 
@@ -154,7 +160,7 @@ pub struct Models {
 }
 
 impl Models {
-    pub fn load(modelpath: &str) -> io::Result<Self> {
+    pub fn load(modelpath: &str) -> Result<Self> {
         // Run a separated thread to load each model
         let mut handles: Vec<thread::JoinHandle<_>> = Vec::new();
         for model_type in ModelType::iter() {
@@ -166,15 +172,16 @@ impl Models {
             if !path.exists() {
                 let message = format!("Model file '{}' could not be found", filename);
                 for h in handles {
+                    //TODO figure out how to propagate this
                     let _ = h.join().unwrap()?;
                 }
-                return Err(io::Error::new(io::ErrorKind::NotFound, message));
+                return Err(io::Error::new(io::ErrorKind::NotFound, message).into());
             }
             handles.push(thread::spawn(move || {
                 let model = Model::from_bin(&filename)?;
                 // check model type is correct
                 assert!(model.model_type == model_type);
-                Ok::<Model, io::Error>(model)
+                Ok::<Model, anyhow::Error>(model)
             }));
         }
 
