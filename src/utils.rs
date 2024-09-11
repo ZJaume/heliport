@@ -1,5 +1,4 @@
 use std::process::{exit, Command};
-use std::io;
 use std::fs;
 
 use log::{info, debug, error};
@@ -97,7 +96,8 @@ pub trait Abort<T> {
     fn or_abort(self, exit_code: i32) -> T;
 }
 
-impl<T> Abort<T> for io::Result<T>
+
+impl<T, E: std::fmt::Display> Abort<T> for Result<T, E>
 {
     fn or_abort(self, exit_code: i32) -> T {
         match self {
