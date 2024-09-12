@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::env;
 
 use clap::{Parser, Subcommand, Args};
+use itertools::Itertools;
 use pyo3::prelude::*;
 use log::{info, debug};
 use env_logger::Env;
@@ -93,13 +94,27 @@ struct IdentifyCmd {
 
 impl IdentifyCmd {
     fn cli(self) -> PyResult<()> {
-        let mut identifier = Identifier::load(&module_path().unwrap().to_str().unwrap())
+        let identifier = Identifier::load(&module_path().unwrap().to_str().unwrap())
             .or_abort(1);
 
         let stdin = io::stdin();
 
-        for line in stdin.lock().lines() {
-            println!("{}", identifier.identify(&line?).0);
+        // for line in stdin.lock().lines() {
+        //     println!("{}", identifier.identify(&line?).0);
+        // }
+        let batches = stdin
+            .lock()
+            .lines()
+            .chunks(100000);
+        for batch_result in &batches {
+            let batch: Vec<_> = batch_result
+                .map(|line| {
+                    line.or_abort(1)
+                })
+                .collect();
+            for l in identifier.par_identify(batch) {
+                println!("{l}");
+            }
         }
         Ok(())
     }

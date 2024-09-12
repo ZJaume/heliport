@@ -8,15 +8,19 @@ use unicode_blocks;
 use regex::Regex;
 use anyhow::Result;
 use log::{debug,warn};
+use lazy_static::lazy_static;
+use rayon::prelude::*;
 
 use crate::languagemodel::{Models};
 use crate::lang::{Lang, LangScores, LangBitmap};
 
+lazy_static! {
+    static ref RE_NON_ALPHA: Regex = Regex::new(r#"[^#gc\p{L}\p{M}′'’´ʹािीुूृेैोौंँः् া ি ী ু ূ ৃ ে ৈ ো ৌ।্্্я̄\u07A6\u07A7\u07A8\u07A9\u07AA\u07AB\u07AC\u07AD\u07AE\u07AF\u07B0\u0A81\u0A82\u0A83\u0ABC\u0ABD\u0ABE\u0ABF\u0AC0\u0AC1\u0AC2\u0AC3\u0AC4\u0AC5\u0AC6\u0AC7\u0AC8\u0AC9\u0ACA\u0ACB\u0ACC\u0ACD\u0AD0\u0AE0\u0AE1\u0AE2\u0AE3\u0AE4\u0AE5\u0AE6\u0AE7\u0AE8\u0AE9\u0AEA\u0AEB\u0AEC\u0AED\u0AEE\u0AEF\u0AF0\u0AF1]"#)
+            .expect("Error compiling non-alpha regex for Idenfifier");
+}
+
 pub struct Identifier {
     models: Arc<Models>,
-    regex_non_alpha: Regex,
-    _regex_spaces: Regex,
-    _use_confidence: bool,
     lang_scored: LangBitmap,
     lang_points: LangScores,
     word_scores: LangScores,
@@ -33,15 +37,8 @@ impl Identifier {
     }
 
     pub fn new(models: Arc<Models>) -> Self {
-        let regex_non_alpha = Regex::new(r#"[^#gc\p{L}\p{M}′'’´ʹािीुूृेैोौंँः् া ি ী ু ূ ৃ ে ৈ ো ৌ।্্্я̄\u07A6\u07A7\u07A8\u07A9\u07AA\u07AB\u07AC\u07AD\u07AE\u07AF\u07B0\u0A81\u0A82\u0A83\u0ABC\u0ABD\u0ABE\u0ABF\u0AC0\u0AC1\u0AC2\u0AC3\u0AC4\u0AC5\u0AC6\u0AC7\u0AC8\u0AC9\u0ACA\u0ACB\u0ACC\u0ACD\u0AD0\u0AE0\u0AE1\u0AE2\u0AE3\u0AE4\u0AE5\u0AE6\u0AE7\u0AE8\u0AE9\u0AEA\u0AEB\u0AEC\u0AED\u0AEE\u0AEF\u0AF0\u0AF1]"#)
-            .expect("Error compiling non-alpha regex for Idenfifier");
-
-
         Self {
             models: models,
-            regex_non_alpha: regex_non_alpha,
-            _regex_spaces: Regex::new("  *").expect("Error compiling repeated spaces regex for Identifier"),
-            _use_confidence: false,
             lang_scored: LangBitmap::new(),
             lang_points: LangScores::new(),
             word_scores: LangScores::new(),
@@ -135,7 +132,7 @@ impl Identifier {
         //TODO is it really remove all non alpha? because I found words with punctuation in
         //langmodel entries
         let lowercased = text.to_lowercase();
-        let replaced = self.regex_non_alpha.replace_all(&lowercased, " ");
+        let replaced = RE_NON_ALPHA.replace_all(&lowercased, " ");
         self.heli_score.clear();
 
         let mut last_was_cjk = false;
@@ -284,6 +281,19 @@ impl Identifier {
             Vec::from([(Lang::unk, Some(Self::PENALTY_VALUE))])
         }
     }
+
+    pub fn par_identify<I>(&self, texts: I) -> Vec<Lang>
+        where I: IntoParallelIterator<Item = String>
+    {
+        texts
+            .into_par_iter()
+            .map(|text| {
+                let mut identifier = Identifier::new(self.models.clone());
+                identifier.identify(&text).0
+            })
+            .collect()
+    }
+
 }
 
 #[cfg(test)]
