@@ -16,8 +16,7 @@ pub struct Identifier {
     models: Arc<Models>,
     regex_non_alpha: Regex,
     _regex_spaces: Regex,
-    use_confidence: bool,
-    number_top_langs: u16,
+    _use_confidence: bool,
     lang_scored: LangBitmap,
     lang_points: LangScores,
     word_scores: LangScores,
@@ -42,8 +41,7 @@ impl Identifier {
             models: models,
             regex_non_alpha: regex_non_alpha,
             _regex_spaces: Regex::new("  *").expect("Error compiling repeated spaces regex for Identifier"),
-            use_confidence: false,
-            number_top_langs: 1,
+            _use_confidence: false,
             lang_scored: LangBitmap::new(),
             lang_points: LangScores::new(),
             word_scores: LangScores::new(),
@@ -51,39 +49,55 @@ impl Identifier {
         }
     }
 
-    // Compute the ranking of languages
-    fn rank_langs(&mut self) -> (Lang, Option<f32>) {
-        let winner_tuple;
+    /// Get the most probable language according to the current language scores
+    fn pick_winner(&mut self) -> (Lang, Option<f32>) {
         // if only one lang is requested, just search for the minimum score (winner)
-        if self.number_top_langs == 1 {
-            let mut min = Self::PENALTY_VALUE + 1.0;
-            let mut winner_lang = Lang::unk;
+        let mut min = Self::PENALTY_VALUE + 1.0;
+        let mut winner_lang = Lang::unk;
 
-            for lang in Lang::iter() {
-                let points = self.lang_points.get(lang);
-                if points <= min {
-                    min = points;
-                    winner_lang = lang;
-                }
+        for lang in Lang::iter() {
+            let points = self.lang_points.get(lang);
+            if points <= min {
+                min = points;
+                winner_lang = lang;
             }
-
-            winner_tuple =  (winner_lang, Some(min));
-        }
-        else {
-            //TODO do the actual ranking here, maybe btree is still the fastest way
-            // maybe a heap of tuples is faster
-            // we also do not need a btree<lang, vec>, if there are ties is fine if its
-            // deterministic
-            unimplemented!("Top k larger than 1 is not implemented");
         }
 
-        // return macrolang (aka return finnish instead of variants)
-        // comment because useless in openlid data for now
-        // winner_tuple.0 = winner_tuple.0.macrolang();
-        winner_tuple
+        (winner_lang, Some(min))
     }
 
-    // Update scores according to currend ngram probability if found
+    /// Build a ranking of the top k scoring languages,
+    /// according to the current language scores
+    fn rank_langs(&mut self, k: usize) -> Vec<(Lang, Option<f32>)> {
+        //TODO do the actual ranking here, maybe btree is still the fastest way
+        // maybe a heap of tuples is faster
+        // we also do not need a btree<lang, vec>, if there are ties is fine if its
+        // deterministic
+        // unimplemented!("Top k larger than 1 is not implemented");
+        self.heli_score.clear();
+        let mut winners = Vec::new();
+        for lang in Lang::iter() {
+            let ord_score = OrderedFloat(self.lang_points.get(lang));
+            if let Some(langs) = self.heli_score.get_mut(&ord_score) {
+                langs.push(lang);
+            } else {
+                self.heli_score.insert(
+                    ord_score,
+                    Vec::from([lang])
+                );
+            }
+        }
+        for _ in 0..k {
+            if let Some((score, langs)) = self.heli_score.pop_first() {
+                for lang in langs {
+                    winners.push((lang, Some(score.into_inner())));
+                }
+            }
+        }
+        winners
+    }
+
+    /// Update scores according to current ngram probability if found
     fn score_gram(&mut self, gram: &str, dic_id: usize) -> bool {
         if let Some(kiepro) = self.models[dic_id].dic.get(gram) {
             // found the word in language model
@@ -110,7 +124,8 @@ impl Identifier {
         false
     }
 
-    pub fn identify(&mut self, text: &str) -> (Lang, Option<f32>) {
+    /// Read the text and obtain language scores based on found ngrams.
+    fn score_langs(&mut self, text: &str) -> bool {
         // lowercase and remove non-alphabetic characters
         //TODO is it really remove all non alpha? because I found words with punctuation in
         //langmodel entries
@@ -129,7 +144,7 @@ impl Identifier {
                 Some(charset) => charset,
                 None => {
                     warn!("Could not find unicode block for '{}'", mystery_char);
-                    return (Lang::unk, Some(Self::PENALTY_VALUE));
+                    return false
                 }
             };
 
@@ -163,11 +178,7 @@ impl Identifier {
 
 
         if words.peek().is_none() {
-            if self.use_confidence && self.number_top_langs == 1 {
-                return (Lang::unk, Some(Self::PENALTY_VALUE));
-            } else {
-                return (Lang::unk, None);
-            }
+            return false;
         }
 
         self.lang_points.reset();
@@ -240,9 +251,34 @@ impl Identifier {
         }
         debug!("Normalized lang points: {:?}", self.lang_points);
 
-        self.rank_langs()
+        true
     }
 
+    /// Identify the most probable language of a given text.
+    ///
+    /// Returns the language and score of the highest scoring language.
+    /// If there are no alphabetical characters or language can not be determined
+    /// it will return unk.
+    pub fn identify(&mut self, text: &str) -> (Lang, Option<f32>) {
+        if self.score_langs(text) {
+            self.pick_winner()
+        } else {
+            (Lang::unk, Some(Self::PENALTY_VALUE))
+        }
+    }
+
+    /// Identify the top k most probable languages of a given text.
+    ///
+    /// Return the list of top k most probable languages and their scores.
+    /// If there are no alphabetical characters or language can not be determined
+    /// it will return unk.
+    pub fn identify_top_k(&mut self, text: &str, k: usize) -> Vec<(Lang, Option<f32>)> {
+        if self.score_langs(text) {
+            self.rank_langs(k)
+        } else {
+            Vec::from([(Lang::unk, Some(Self::PENALTY_VALUE))])
+        }
+    }
 }
 
 #[cfg(test)]
