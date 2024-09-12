@@ -28,7 +28,7 @@ enum Commands {
     Download(DownloadCmd),
     #[command(about="Binarize heliport model")]
     Binarize(BinarizeCmd),
-    #[command(about="Identify languages of input text")]
+    #[command(about="Identify languages of input text", visible_alias="detect")]
     Identify(IdentifyCmd),
 }
 
