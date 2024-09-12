@@ -12,8 +12,8 @@ use target;
 use crate::languagemodel::{Model, ModelType};
 use crate::identifier::Identifier;
 use crate::utils::Abort;
-use crate::module_path;
-use crate::utils;
+use crate::python::module_path;
+use crate::download;
 
 #[derive(Parser, Clone)]
 #[command(version, about, long_about = None)]
@@ -80,7 +80,7 @@ impl DownloadCmd {
             target::os(),
             target::arch());
 
-        utils::download_file_and_extract(&url, download_path.to_str().unwrap()).unwrap();
+        download::download_file_and_extract(&url, download_path.to_str().unwrap()).unwrap();
         info!("Finished");
 
         Ok(())
