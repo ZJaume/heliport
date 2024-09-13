@@ -31,7 +31,7 @@ clap = { version = "4.5", features = ["derive"], optional = true}
 anyhow = "1.0"
 rayon = "1.10"
 itertools = "0.11"
-lazy_static = "1.5.0"
+lazy_static = "1.5"
 
 [dev-dependencies]
 test-log = "0.2.15"

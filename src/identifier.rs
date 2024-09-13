@@ -285,7 +285,7 @@ impl Identifier {
     /// Parallel version of [`Self::identify`]
     ///
     /// Takes an iterator of text instances and returns a [`Vec`] with the results
-    pub fn par_identify<I>(&self, texts: I) -> Vec<Lang>
+    pub fn par_identify<I>(&self, texts: I) -> Vec<(Lang, Option<f32>)>
         where I: IntoParallelIterator<Item = String>
     {
         // Each thread initializes with its own reference to the identifier object
@@ -303,7 +303,7 @@ impl Identifier {
                     if identifier.is_none() {
                         *identifier = Some(Identifier::new(self.models.clone()));
                     }
-                    identifier.as_mut().unwrap().identify(&text).0
+                    identifier.as_mut().unwrap().identify(&text)
                 })
             })
             .collect()

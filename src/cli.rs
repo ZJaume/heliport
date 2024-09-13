@@ -90,6 +90,14 @@ impl DownloadCmd {
 
 #[derive(Args, Clone)]
 struct IdentifyCmd {
+    #[arg(help="Number of parallel threads to use", short='j', long, default_value_t=0)]
+    threads: usize,
+    #[arg(
+        short,
+        long,
+        default_value_t=100000,
+        help="Number of text segments to pre-load for parallel processing")]
+    batch_size: usize,
 }
 
 impl IdentifyCmd {
@@ -97,24 +105,52 @@ impl IdentifyCmd {
         let identifier = Identifier::load(&module_path().unwrap().to_str().unwrap())
             .or_abort(1);
 
-        let stdin = io::stdin();
+        let stdin = io::stdin().lock();
+        if self.threads == 0 {
+            return self.run_single(stdin, identifier)
+        } else {
+            self.run_parallel(stdin, identifier)
+        }
+    }
 
-        // for line in stdin.lock().lines() {
-        //     println!("{}", identifier.identify(&line?).0);
-        // }
-        let batches = stdin
-            .lock()
+    // Run using the parallel identification method
+    // read in batches
+    fn run_parallel<F>(self, reader: F, identifier: Identifier) -> PyResult<()>
+        where F: BufRead
+    {
+        // Initialize global thread pool with the number of threads
+        // provided by the user
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(self.threads)
+            .build_global()
+            .or_abort(1);
+
+        // Initialize the reader iterator in batches
+        let batches = reader
             .lines()
-            .chunks(100000);
+            .chunks(self.batch_size);
+
+        // Process each batch in parallel
         for batch_result in &batches {
             let batch: Vec<_> = batch_result
                 .map(|line| {
                     line.or_abort(1)
                 })
                 .collect();
-            for l in identifier.par_identify(batch) {
-                println!("{l}");
+            for b in identifier.par_identify(batch) {
+                println!("{}", b.0);
             }
+        }
+        Ok(())
+    }
+
+    // Run using the single-threaded indetification method
+    fn run_single<F>(self, reader: F, mut identifier: Identifier) -> PyResult<()>
+        where F: BufRead
+    {
+        // Process line by line
+        for line in reader.lines() {
+            println!("{}", identifier.identify(&line?).0);
         }
         Ok(())
     }
