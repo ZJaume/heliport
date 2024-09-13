@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use ordered_float::OrderedFloat;
 use strum::{IntoEnumIterator, EnumCount};
@@ -282,14 +282,29 @@ impl Identifier {
         }
     }
 
+    /// Parallel version of [`Self::identify`]
+    ///
+    /// Takes an iterator of text instances and returns a [`Vec`] with the results
     pub fn par_identify<I>(&self, texts: I) -> Vec<Lang>
         where I: IntoParallelIterator<Item = String>
     {
+        // Each thread initializes with its own reference to the identifier object
+        thread_local! {
+            static IDENTIFIER_LOCAL: Mutex<Option<Identifier>> = Mutex::new(None);
+        }
+
+        // Parallelize identification by the number of texts
         texts
             .into_par_iter()
             .map(|text| {
-                let mut identifier = Identifier::new(self.models.clone());
-                identifier.identify(&text).0
+                IDENTIFIER_LOCAL.with(|identifier| {
+                    // Only initialize the identifier once
+                    let mut identifier = identifier.lock().unwrap();
+                    if identifier.is_none() {
+                        *identifier = Some(Identifier::new(self.models.clone()));
+                    }
+                    identifier.as_mut().unwrap().identify(&text).0
+                })
             })
             .collect()
     }
