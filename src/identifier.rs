@@ -115,9 +115,14 @@ impl Identifier {
             }
             // Penalize all the languages that do not have probabilities for this ngram
             for i in 0..Lang::COUNT {
-                if !self.lang_scored[i] {
-                    self.word_scores.add_index(i, Self::PENALTY_VALUE);
-                }
+                // instead of excluding scored langs with an if
+                // sum them all, multiplying by the negation of the bitmap
+                // which results in adding a 0 if it's scored
+                // this is faster, because of easier autovectorization?
+                self.word_scores.add_index(
+                    i,
+                    Self::PENALTY_VALUE * !self.lang_scored[i] as usize as f32
+                );
             }
             return true;
         }
@@ -206,7 +211,7 @@ impl Identifier {
                     // Iterate over all possible ngrams of order t, over the current word
                     for gram in wordspace.as_shingles(t) {
                         let cur_scored = self.score_gram(gram, t);
-                        grammaara += cur_scored as usize;
+                        grammaara += cur_scored as usize; // sum+1 if score returns true
                         if !word_scored && cur_scored {
                             word_scored = true;
                         }
