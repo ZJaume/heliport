@@ -11,7 +11,7 @@ use log::{debug,warn};
 use lazy_static::lazy_static;
 use rayon::prelude::*;
 
-use crate::languagemodel::{Models};
+use crate::languagemodel::Model;
 use crate::lang::{Lang, LangScores, LangBitmap};
 
 lazy_static! {
@@ -20,7 +20,7 @@ lazy_static! {
 }
 
 pub struct Identifier {
-    models: Arc<Models>,
+    model: Arc<Model>,
     lang_scored: LangBitmap,
     lang_points: LangScores,
     word_scores: LangScores,
@@ -33,12 +33,12 @@ impl Identifier {
     const MAX_NGRAM : usize = 6;
 
     pub fn load(modelpath: &str) -> Result<Self> {
-        Ok(Self::new(Arc::new(Models::load(modelpath)?)))
+        Ok(Self::new(Arc::new(Model::load(modelpath)?)))
     }
 
-    pub fn new(models: Arc<Models>) -> Self {
+    pub fn new(model: Arc<Model>) -> Self {
         Self {
-            models: models,
+            model: model,
             lang_scored: LangBitmap::new(),
             lang_points: LangScores::new(),
             word_scores: LangScores::new(),
@@ -96,7 +96,7 @@ impl Identifier {
 
     /// Update scores according to current ngram probability if found
     fn score_gram(&mut self, gram: &str, dic_id: usize) -> bool {
-        if let Some(kiepro) = self.models[dic_id].dic.get(gram) {
+        if let Some(kiepro) = self.model[dic_id].dic.get(gram) {
             // found the word in language model
             // update scores according to each lang that has the word
             // use penalty value for langs that don't have the word
@@ -301,7 +301,7 @@ impl Identifier {
                     // Only initialize the identifier once
                     let mut identifier = identifier.lock().unwrap();
                     if identifier.is_none() {
-                        *identifier = Some(Identifier::new(self.models.clone()));
+                        *identifier = Some(Identifier::new(self.model.clone()));
                     }
                     identifier.as_mut().unwrap().identify(&text)
                 })

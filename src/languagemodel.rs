@@ -20,7 +20,7 @@ use crate::lang::Lang;
 #[derive(bitcode::Encode, bitcode::Decode, EnumIter, Display, EnumCount,
          Debug, PartialEq, Clone, Copy)]
 #[strum(serialize_all = "lowercase")]
-pub enum ModelType {
+pub enum OrderNgram {
     Word,
     Unigram,
     Bigram,
@@ -32,12 +32,12 @@ pub enum ModelType {
 
 
 #[derive(bitcode::Encode, bitcode::Decode, Debug, PartialEq)]
-pub struct Model {
+pub struct ModelNgram {
     pub dic: HashMap<String, Vec<(Lang, f32)>, MyHasher>,
-    pub model_type: ModelType,
+    pub model_type: OrderNgram,
 }
 
-impl Model {
+impl ModelNgram {
     // The following values are the ones used in Jauhiainen et al. 2017.
     pub const MAX_USED : f64 = 0.0000005;
 
@@ -45,8 +45,8 @@ impl Model {
         self.dic.contains_key(key)
     }
 
-    pub fn from_text(model_dir: &Path, model_type: ModelType) -> Result<Self> {
-        let mut model = Model {
+    pub fn from_text(model_dir: &Path, model_type: OrderNgram) -> Result<Self> {
+        let mut model = ModelNgram {
             dic: HashMap::default(),
             model_type: model_type.clone()
         };
@@ -155,15 +155,15 @@ impl Model {
     }
 }
 
-pub struct Models {
-    inner: [Model; ModelType::COUNT],
+pub struct Model {
+    inner: [ModelNgram; OrderNgram::COUNT],
 }
 
-impl Models {
+impl Model {
     pub fn load(modelpath: &str) -> Result<Self> {
         // Run a separated thread to load each model
         let mut handles: Vec<thread::JoinHandle<_>> = Vec::new();
-        for model_type in ModelType::iter() {
+        for model_type in OrderNgram::iter() {
             let type_repr = model_type.to_string();
             let filename = format!("{modelpath}/{type_repr}.bin");
 
@@ -178,10 +178,10 @@ impl Models {
                 return Err(io::Error::new(io::ErrorKind::NotFound, message).into());
             }
             handles.push(thread::spawn(move || {
-                let model = Model::from_bin(&filename)?;
+                let model = ModelNgram::from_bin(&filename)?;
                 // check model type is correct
                 assert!(model.model_type == model_type);
-                Ok::<Model, anyhow::Error>(model)
+                Ok::<ModelNgram, anyhow::Error>(model)
             }));
         }
 
@@ -201,8 +201,8 @@ impl Models {
 }
 
 // to avoid calling inner value
-impl Index<usize> for Models {
-    type Output = Model;
+impl Index<usize> for Model {
+    type Output = ModelNgram;
 
     fn index(&self, num: usize) -> &Self::Output {
         &self.inner[num]
@@ -220,22 +220,22 @@ mod tests {
     #[test]
     fn test_langs() {
         let modelpath = Path::new("./LanguageModels");
-        let wordmodel = Model::from_text(&modelpath, ModelType::Word);
+        let wordmodel = ModelNgram::from_text(&modelpath, OrderNgram::Word);
         let path = Path::new("wordict.ser");
         wordmodel.save(path);
 
-        let charmodel = Model::from_text(&modelpath, ModelType::Quadgram);
+        let charmodel = ModelNgram::from_text(&modelpath, OrderNgram::Quadgram);
         let path = Path::new("gramdict.ser");
         charmodel.save(path);
 
         let char_handle = thread::spawn(move || {
             let path = Path::new("gramdict.ser");
-            Model::from_bin(path)
+            ModelNgram::from_bin(path)
         });
 
         let word_handle = thread::spawn(move || {
             let path = Path::new("wordict.ser");
-            Model::from_bin(path)
+            ModelNgram::from_bin(path)
         });
 
         // let word_model = word_handle.join().unwrap();

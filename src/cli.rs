@@ -10,7 +10,7 @@ use env_logger::Env;
 use strum::IntoEnumIterator;
 use target;
 
-use crate::languagemodel::{Model, ModelType};
+use crate::languagemodel::{ModelNgram, OrderNgram};
 use crate::identifier::Identifier;
 use crate::utils::Abort;
 use crate::python::module_path;
@@ -46,10 +46,10 @@ impl BinarizeCmd {
         let model_path = self.input_dir.unwrap_or(PathBuf::from("./LanguageModels"));
         let save_path = self.output_dir.unwrap_or(module_path().unwrap());
 
-        for model_type in ModelType::iter() {
+        for model_type in OrderNgram::iter() {
             let type_repr = model_type.to_string();
             info!("Loading {type_repr} model");
-            let model = Model::from_text(&model_path, model_type)
+            let model = ModelNgram::from_text(&model_path, model_type)
                 .or_abort(1);
             let size = model.dic.len();
             info!("Created {size} entries");
