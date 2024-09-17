@@ -81,9 +81,7 @@ impl ModelNgram {
 
         // Load each type of language model
         for lang in Lang::iter() {
-            if lang == Lang::unk {
-                continue;
-            }
+            if lang == Lang::und { continue; }
             let lang_repr = lang.to_string().to_lowercase();
             // Models may not have all the language codes supported by the library
             if !lang_list.contains(&lang_repr[..]) {
