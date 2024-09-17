@@ -260,7 +260,7 @@ impl Lang {
         *self == Lang::jpn || *self == Lang::kor || *self == Lang::cmn
     }
 
-    pub fn macrolang(&self) -> Self {
+    pub fn collapse(&self) -> Self {
         match self {
             Lang::fini | Lang::fink | Lang::finl | Lang::finm | Lang::fino | Lang::finp | Lang::finr | Lang::fins | Lang::fint | Lang::finx => return Lang::fin,
             Lang::hbsbos | Lang::hbshrv | Lang::hbssrp => return Lang::hbs,

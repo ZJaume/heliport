@@ -5,7 +5,6 @@ use std::sync::{Arc, Mutex};
 use ordered_float::OrderedFloat;
 use strum::{IntoEnumIterator, EnumCount};
 use shingles::AsShingles;
-use unicode_blocks;
 use regex::Regex;
 use anyhow::Result;
 use log::{debug,warn};
@@ -14,6 +13,7 @@ use rayon::prelude::*;
 
 use crate::languagemodel::Model;
 use crate::lang::{Lang, LangScores, LangBitmap};
+use crate::utils::is_cjk_block;
 
 lazy_static! {
     static ref RE_NON_ALPHA: Regex = Regex::new(r#"[^#gc\p{L}\p{M}′'’´ʹािीुूृेैोौंँः् া ি ী ু ূ ৃ ে ৈ ো ৌ।্্্я̄\u07A6\u07A7\u07A8\u07A9\u07AA\u07AB\u07AC\u07AD\u07AE\u07AF\u07B0\u0A81\u0A82\u0A83\u0ABC\u0ABD\u0ABE\u0ABF\u0AC0\u0AC1\u0AC2\u0AC3\u0AC4\u0AC5\u0AC6\u0AC7\u0AC8\u0AC9\u0ACA\u0ACB\u0ACC\u0ACD\u0AD0\u0AE0\u0AE1\u0AE2\u0AE3\u0AE4\u0AE5\u0AE6\u0AE7\u0AE8\u0AE9\u0AEA\u0AEB\u0AEC\u0AED\u0AEE\u0AEF\u0AF0\u0AF1]"#)
@@ -27,6 +27,7 @@ pub struct Identifier {
     word_scores: LangScores,
     heli_score: BTreeMap<OrderedFloat<f32>, Vec<Lang>>,
 }
+
 
 
 impl Identifier {
@@ -51,7 +52,7 @@ impl Identifier {
     fn pick_winner(&mut self) -> (Lang, Option<f32>) {
         // if only one lang is requested, just search for the minimum score (winner)
         let mut min = Self::PENALTY_VALUE + 1.0;
-        let mut winner_lang = Lang::unk;
+        let mut winner_lang = Lang::und;
 
         for lang in Lang::iter() {
             let points = self.lang_points.get(lang);
@@ -61,17 +62,13 @@ impl Identifier {
             }
         }
 
-        (winner_lang, Some(min))
+        (winner_lang.collapse(), Some(min))
     }
 
     /// Build a ranking of the top k scoring languages,
     /// according to the current language scores
     fn rank_langs(&mut self, k: usize) -> Vec<(Lang, Option<f32>)> {
-        //TODO do the actual ranking here, maybe btree is still the fastest way
-        // maybe a heap of tuples is faster
-        // we also do not need a btree<lang, vec>, if there are ties is fine if its
-        // deterministic
-        // unimplemented!("Top k larger than 1 is not implemented");
+        //TODO collapse macro languages
         self.heli_score.clear();
         let mut winners = Vec::new();
         for lang in Lang::iter() {
@@ -143,15 +140,19 @@ impl Identifier {
         let mut mystery_length = 0;
 
         for mystery_char in replaced.chars() {
-            let charset = match unicode_blocks::find_unicode_block(mystery_char) {
-                Some(charset) => charset,
-                None => {
-                    warn!("Could not find unicode block for '{}'", mystery_char);
-                    return false
-                }
+            // Original HeLI checks only CJK_*, which is only the common background
+            // chars of CJK and does not include Hana or Hangul.
+            // I do not know if this was intentional, but as a side effect, it separates
+            // the groups of CJK unfied (commonly known chinese chars) from the hana and hangul
+            // with a space. It seems to give better japanese identification in some cases.
+            let is_cjk = if let Ok(is) = is_cjk_block(mystery_char) {
+                is
+            } else {
+                warn!("Could not find unicode block for '{}'", mystery_char);
+                return false;
             };
 
-            if unicode_blocks::is_cjk_block(charset) {
+            if is_cjk {
                 if !last_was_cjk && !last_was_space {
                     mystery_text.push(' ');
                 }
@@ -160,7 +161,6 @@ impl Identifier {
                 cjk_num_chars += 1;
             } else {
                 if last_was_cjk && mystery_char != ' ' {
-                    mystery_text.push(mystery_char);
                     mystery_text.push(' ');
                 }
                 last_was_space = mystery_char == ' ';
@@ -240,15 +240,16 @@ impl Identifier {
         // the CJK fix could just finish early?
         let cjk_pct;
         if mystery_length == 0 {
-            cjk_pct = 0;
+            cjk_pct = 0.0;
         } else {
-            cjk_pct = 100 / mystery_length * cjk_num_chars
+            cjk_pct =  cjk_num_chars as f32 / mystery_length as f32;
         }
+        debug!("CJK amount: {cjk_num_chars} ({cjk_pct:.2}%) mystery_text size: {mystery_length}");
         for lang in Lang::iter() {
             let lang_score_norm = self.lang_points.get(lang) / num_words as f32;
             self.lang_points.insert(lang, lang_score_norm);
 
-            if cjk_pct > 50 && !lang.is_cjk() {
+            if cjk_pct > 0.5 && !lang.is_cjk() {
                 self.lang_points.insert(lang, Self::PENALTY_VALUE + 1.0);
             }
         }
@@ -266,7 +267,7 @@ impl Identifier {
         if self.score_langs(text) {
             self.pick_winner()
         } else {
-            (Lang::unk, Some(Self::PENALTY_VALUE))
+            (Lang::und, Some(Self::PENALTY_VALUE))
         }
     }
 
@@ -279,7 +280,7 @@ impl Identifier {
         if self.score_langs(text) {
             self.rank_langs(k)
         } else {
-            Vec::from([(Lang::unk, Some(Self::PENALTY_VALUE))])
+            Vec::from([(Lang::und, Some(Self::PENALTY_VALUE))])
         }
     }
 
