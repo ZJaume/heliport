@@ -1,24 +1,25 @@
 use std::collections::{HashMap, HashSet};
-use std::hash::BuildHasherDefault;
-use std::io::{self, Write, Read};
 use std::fs::{self, File};
-use std::path::Path;
+use std::hash::BuildHasherDefault;
+use std::io::{self, Read, Write};
 use std::ops::Index;
+use std::path::{Path, PathBuf};
 use std::thread;
 
-use strum::{IntoEnumIterator, Display, EnumCount};
-use strum_macros::EnumIter;
-use log::{debug, warn};
 use anyhow::{Context, Result};
 use bitcode;
+use log::{debug, warn};
+use strum::{Display, EnumCount, IntoEnumIterator};
+use strum_macros::EnumIter;
 
 use wyhash2::WyHash;
 type MyHasher = BuildHasherDefault<WyHash>;
 
 use crate::lang::Lang;
 
-#[derive(bitcode::Encode, bitcode::Decode, EnumIter, Display, EnumCount,
-         Debug, PartialEq, Clone, Copy)]
+#[derive(
+    bitcode::Encode, bitcode::Decode, EnumIter, Display, EnumCount, Debug, PartialEq, Clone, Copy,
+)]
 #[strum(serialize_all = "lowercase")]
 pub enum OrderNgram {
     Word,
@@ -30,7 +31,6 @@ pub enum OrderNgram {
     Hexagram,
 }
 
-
 #[derive(bitcode::Encode, bitcode::Decode, Debug, PartialEq)]
 pub struct ModelNgram {
     pub dic: HashMap<String, Vec<(Lang, f32)>, MyHasher>,
@@ -39,16 +39,39 @@ pub struct ModelNgram {
 
 impl ModelNgram {
     // The following values are the ones used in Jauhiainen et al. 2017.
-    pub const MAX_USED : f64 = 0.0000005;
+    pub const MAX_USED: f64 = 0.0000005;
 
     pub fn contains(&self, key: &str) -> bool {
         self.dic.contains_key(key)
     }
 
+    pub fn from_text_langs(
+        model_dir: &Path,
+        model_type: OrderNgram,
+        langs: Vec<Lang>,
+    ) -> Result<Self> {
+        let mut model = ModelNgram {
+            dic: HashMap::default(),
+            model_type: model_type.clone(),
+        };
+
+        for lang in langs {
+            let lang_repr = lang.to_string().to_lowercase();
+            let type_repr = model_type.to_string();
+            model.read_model(
+                &model_dir.join(format!("{lang_repr}.{type_repr}.model")),
+                &lang,
+            )?;
+        }
+
+        Ok(model)
+    }
+
+
     pub fn from_text(model_dir: &Path, model_type: OrderNgram) -> Result<Self> {
         let mut model = ModelNgram {
             dic: HashMap::default(),
-            model_type: model_type.clone()
+            model_type: model_type.clone(),
         };
 
         // Open languagelist for this model
@@ -58,7 +81,9 @@ impl ModelNgram {
 
         // Load each type of language model
         for lang in Lang::iter() {
-            if lang == Lang::unk { continue; }
+            if lang == Lang::unk {
+                continue;
+            }
             let lang_repr = lang.to_string().to_lowercase();
             // Models may not have all the language codes supported by the library
             if !lang_list.contains(&lang_repr[..]) {
@@ -67,7 +92,10 @@ impl ModelNgram {
             }
 
             let type_repr = model_type.to_string();
-            model.read_model(&model_dir.join(format!("{lang_repr}.{type_repr}.model")), &lang)?;
+            model.read_model(
+                &model_dir.join(format!("{lang_repr}.{type_repr}.model")),
+                &lang,
+            )?;
         }
 
         // we give language_list here, otherwise cannot call mutable borrow 'model.read_model' above
@@ -76,8 +104,8 @@ impl ModelNgram {
 
     fn read_model(&mut self, p: &Path, langcode: &Lang) -> Result<()> {
         // Read the language model file to a string all at once
-        let modelfile = fs::read_to_string(p)
-            .with_context(|| format!("Error reading file: {p:?}"))?;
+        let modelfile =
+            fs::read_to_string(p).with_context(|| format!("Error reading file: {p:?}"))?;
 
         let mut temp_dict: HashMap<_, _, MyHasher> = HashMap::default();
         let mut num_features = 0_u64;
@@ -90,14 +118,16 @@ impl ModelNgram {
         for (i, line) in modelfile.lines().enumerate() {
             // parse number of entries
             if i == 0 {
-                num_features = line.parse()
+                num_features = line
+                    .parse()
                     .with_context(|| format!("Error parsing line {i} in file {p:?}"))?;
                 continue;
             }
 
             // parse an entry with token and frequency
             let parts: Vec<&str> = line.split("\t").collect();
-            amount = parts[1].parse()
+            amount = parts[1]
+                .parse()
                 .with_context(|| format!("Error parsing line {i} in file {p:?}"))?;
             // insert into the map
             if (amount as f64 / num_features as f64) > Self::MAX_USED {
@@ -129,16 +159,16 @@ impl ModelNgram {
     }
 
     // Create a new struct reading from a binary file
-    pub fn from_bin(p: &str) -> Result<Self> {
-        let mut file = File::open(p)
-            .with_context(|| format!("Could not open model file '{}'", p))?;
+    pub fn from_bin(p: &Path) -> Result<Self> {
+        let mut file =
+            File::open(p).with_context(|| format!("Could not open model file '{}'", p.display()))?;
         let mut content = Vec::new();
-        let _ = file.read_to_end(&mut content)
-            .with_context(|| format!("Error during reading file '{}'", p))?;
+        let _ = file
+            .read_to_end(&mut content)
+            .with_context(|| format!("Error during reading file '{}'", p.display()))?;
 
         // should find a way to propagate possible bitcode errors?
-        Ok(bitcode::decode(&content)
-           .with_context(|| "Could not deserialize model")?)
+        Ok(bitcode::decode(&content).with_context(|| "Could not deserialize model")?)
     }
 
     // Save the struct in binary format
@@ -151,7 +181,7 @@ impl ModelNgram {
         let serialized = bitcode::encode(&self);
         // Write serialized bytes to the compressor
         file.write_all(&serialized)
-           .with_context(|| format!("Error during writing file '{}'", p.display()))
+            .with_context(|| format!("Error during writing file '{}'", p.display()))
     }
 }
 
@@ -160,29 +190,42 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn load(modelpath: &str) -> Result<Self> {
+    pub fn load(modelpath: &Path, langs: Option<Vec<Lang>>) -> Result<Self> {
         // Run a separated thread to load each model
         let mut handles: Vec<thread::JoinHandle<_>> = Vec::new();
         for model_type in OrderNgram::iter() {
             let type_repr = model_type.to_string();
-            let filename = format!("{modelpath}/{type_repr}.bin");
 
-            // If a model does not exist, fail early
-            let path = Path::new(&filename);
-            if !path.exists() {
-                let message = format!("Model file '{}' could not be found", filename);
-                for h in handles {
-                    //TODO figure out how to propagate this
-                    let _ = h.join().unwrap()?;
+            if let Some(ref l) = langs {
+                // Load model from text
+                let modelpath_copy = PathBuf::from(modelpath);
+                let langs_copy = l.clone();
+                handles.push(thread::spawn(move || {
+                    let model = ModelNgram::from_text_langs(
+                        &modelpath_copy,
+                        model_type,
+                        langs_copy)?;
+                    Ok(model)
+                }));
+            } else {
+                // Load model binary
+                let filename = modelpath.join(format!("{type_repr}.bin"));
+                // If a model binary does not exist, fail early
+                if !filename.exists() {
+                    let message = format!("Model file '{}' could not be found", filename.display());
+                    for h in handles {
+                        //TODO figure out how to propagate this
+                        let _ = h.join().unwrap()?;
+                    }
+                    return Err(io::Error::new(io::ErrorKind::NotFound, message).into());
                 }
-                return Err(io::Error::new(io::ErrorKind::NotFound, message).into());
+                handles.push(thread::spawn(move || {
+                    let model = ModelNgram::from_bin(&filename)?;
+                    // check model type is correct
+                    assert!(model.model_type == model_type);
+                    Ok::<ModelNgram, anyhow::Error>(model)
+                }));
             }
-            handles.push(thread::spawn(move || {
-                let model = ModelNgram::from_bin(&filename)?;
-                // check model type is correct
-                assert!(model.model_type == model_type);
-                Ok::<ModelNgram, anyhow::Error>(model)
-            }));
         }
 
         Ok(Self {
@@ -195,7 +238,7 @@ impl Model {
                 handles.remove(0).join().unwrap()?,
                 handles.remove(0).join().unwrap()?,
                 handles.remove(0).join().unwrap()?,
-            ]
+            ],
         })
     }
 }
@@ -209,13 +252,11 @@ impl Index<usize> for Model {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::thread;
     use std::collections::HashMap;
-
+    use std::thread;
 
     #[test]
     fn test_langs() {

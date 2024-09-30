@@ -34,7 +34,7 @@ impl PyIdentifier {
     #[new]
     fn new() -> PyResult<Self> {
         let modulepath = module_path().expect("Error loading python module path");
-        let identifier = Identifier::load(&modulepath.to_str().unwrap())
+        let identifier = Identifier::load(&modulepath, None)
             .or_abort(1);
 
         Ok(Self {

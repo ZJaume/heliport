@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use ordered_float::OrderedFloat;
@@ -32,8 +33,8 @@ impl Identifier {
     const PENALTY_VALUE : f32 = 7.0;
     const MAX_NGRAM : usize = 6;
 
-    pub fn load(modelpath: &str) -> Result<Self> {
-        Ok(Self::new(Arc::new(Model::load(modelpath)?)))
+    pub fn load(modelpath: &Path, langs: Option<Vec<Lang>>) -> Result<Self> {
+        Ok(Self::new(Arc::new(Model::load(modelpath, langs)?)))
     }
 
     pub fn new(model: Arc<Model>) -> Self {

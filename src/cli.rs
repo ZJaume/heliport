@@ -1,6 +1,7 @@
 use std::io::{self, BufRead, BufReader, Write, BufWriter};
 use std::fs::File;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 use std::env;
 
 use anyhow::{Context, Result};
@@ -13,6 +14,7 @@ use strum::IntoEnumIterator;
 use target;
 
 use crate::languagemodel::{ModelNgram, OrderNgram};
+use crate::lang::Lang;
 use crate::identifier::Identifier;
 use crate::utils::Abort;
 use crate::python::module_path;
@@ -105,6 +107,14 @@ struct IdentifyCmd {
     input_file: Option<PathBuf>,
     #[arg(help="Output file, default: stdout", )]
     output_file: Option<PathBuf>,
+
+    #[arg(short, long, help="Model directory containing binarized model or plain text model. Default is module path or './LanguageModels' for plain text when relevant languages are requested")]
+    model_dir: Option<PathBuf>,
+    #[arg(long,
+          short = 'l',
+          value_delimiter=',',
+          help="Load only relevant languages from plain text model. Specify a comma-separated list of language codes")]
+    relevant_langs: Option<Vec<String>>,
 }
 
 fn open_reader(p: &Path) -> Result<Box<dyn BufRead>> {
@@ -119,10 +129,40 @@ fn open_writer(p: &Path) -> Result<Box<dyn Write>> {
     Ok(Box::new(BufWriter::new(file)))
 }
 
+// Parse a list of language code strings to Lang enum
+fn parse_langs(langs_text: &Vec<String>) -> Result<Vec<Lang>> {
+    let mut langs = Vec::new();
+    for l in langs_text {
+        langs.push(Lang::from_str(&l.to_lowercase())
+                   .with_context(|| format!("Language code '{l}' does not exist"))?);
+    }
+    Ok(langs)
+}
+
 impl IdentifyCmd {
     fn cli(self) -> PyResult<()> {
-        let identifier = Identifier::load(&module_path().unwrap().to_str().unwrap())
-            .or_abort(1);
+        // If provided, parse the list of relevant languages
+        let mut relevant_langs = None;
+        if let Some(r) = &self.relevant_langs {
+            relevant_langs = Some(parse_langs(&r).or_abort(1));
+        }
+
+        // Obtain model directory
+        let model_dir;
+        if let Some(m) = &self.model_dir {
+            // Use provided model dir
+            model_dir = m.clone();
+        } else {
+            // If user does not provide model dir and relevant languages
+            // are requested, default to .LanguageModels in the repo
+            // otherwise use python module path
+            if relevant_langs.is_some() {
+                model_dir = PathBuf::from("./LanguageModels");
+            } else {
+                model_dir = module_path().unwrap();
+            }
+        }
+
         let (input_file, output_file);
         if let Some(p) = &self.input_file {
             input_file = open_reader(&p).or_abort(1);
@@ -135,6 +175,9 @@ impl IdentifyCmd {
             output_file = Box::new(io::stdout().lock());
         }
 
+        // Load identifier
+        let identifier = Identifier::load(&model_dir, relevant_langs)
+            .or_abort(1);
 
         if self.threads == 0 {
             self.run_single(identifier, input_file, output_file).or_abort(1);
@@ -143,6 +186,7 @@ impl IdentifyCmd {
         }
         Ok(())
     }
+
 
     // Run using the parallel identification method
     // read in batches
