@@ -1,5 +1,5 @@
 use std::io::{self, BufRead, BufReader, Write, BufWriter};
-use std::fs::File;
+use std::fs::{copy, File};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::env;
@@ -13,7 +13,7 @@ use env_logger::Env;
 use strum::IntoEnumIterator;
 use target;
 
-use crate::languagemodel::{ModelNgram, OrderNgram};
+use crate::languagemodel::{Model, ModelNgram, OrderNgram};
 use crate::lang::Lang;
 use crate::identifier::Identifier;
 use crate::utils::Abort;
@@ -61,6 +61,12 @@ impl BinarizeCmd {
             info!("Saving {type_repr} model");
             model.save(Path::new(&filename)).or_abort(1);
         }
+        info!("Copying confidence thresholds file");
+        copy(
+            model_path.join(Model::CONFIDENCE_FILE),
+            save_path.join(Model::CONFIDENCE_FILE),
+        ).or_abort(1);
+
         info!("Saved models at '{}'", save_path.display());
         info!("Finished");
 
