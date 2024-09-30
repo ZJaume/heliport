@@ -94,7 +94,10 @@ impl DownloadCmd {
 
 #[derive(Args, Clone)]
 struct IdentifyCmd {
-    #[arg(help="Number of parallel threads to use", short='j', long, default_value_t=0)]
+    #[arg(help="Number of parallel threads to use.\n0 means no multi-threading\n1 means running the identification in a separated thread\n>1 run multithreading",
+          short='j',
+          long,
+          default_value_t=0)]
     threads: usize,
     #[arg(
         short,
@@ -108,12 +111,12 @@ struct IdentifyCmd {
     #[arg(help="Output file, default: stdout", )]
     output_file: Option<PathBuf>,
 
-    #[arg(short, long, help="Model directory containing binarized model or plain text model. Default is module path or './LanguageModels' for plain text when relevant languages are requested")]
+    #[arg(short, long, help="Model directory containing binarized model or plain text model. Default is Python module path or './LanguageModels' if relevant languages are requested")]
     model_dir: Option<PathBuf>,
     #[arg(long,
           short = 'l',
           value_delimiter=',',
-          help="Load only relevant languages from plain text model. Specify a comma-separated list of language codes")]
+          help="Load only relevant languages. Specify a comma-separated list of language codes. Needs plain text model directory")]
     relevant_langs: Option<Vec<String>>,
 }
 
@@ -179,6 +182,7 @@ impl IdentifyCmd {
         let identifier = Identifier::load(&model_dir, relevant_langs)
             .or_abort(1);
 
+        // do not run on separated threads if multithreading is not requested
         if self.threads == 0 {
             self.run_single(identifier, input_file, output_file).or_abort(1);
         } else {
