@@ -5,7 +5,6 @@ use pyo3::prelude::*;
 
 #[cfg(feature = "cli")]
 use crate::cli::cli_run;
-use crate::utils::Abort;
 use crate::identifier::Identifier;
 
 // Call python interpreter and obtain python path of our module
@@ -30,7 +29,7 @@ impl Identifier {
     #[pyo3(signature = (use_confidence = false))]
     fn py_new(use_confidence: bool) -> PyResult<Self> {
         let modulepath = module_path().expect("Error loading python module path");
-        let mut identifier = Identifier::load(&modulepath, None).or_abort(1);
+        let mut identifier = Identifier::load(&modulepath, None)?;
         if use_confidence {
             identifier.enable_confidence();
         }
