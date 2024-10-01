@@ -11,6 +11,9 @@ use log::{debug,warn};
 use lazy_static::lazy_static;
 use rayon::prelude::*;
 
+#[cfg(feature = "python")]
+use pyo3::pyclass;
+
 use crate::languagemodel::Model;
 use crate::lang::{Lang, LangScores, LangBitmap};
 use crate::utils::is_cjk_block;
@@ -20,49 +23,87 @@ lazy_static! {
             .expect("Error compiling non-alpha regex for Idenfifier");
 }
 
+#[cfg(feature = "python")]
+#[pyclass]
 pub struct Identifier {
     model: Arc<Model>,
     lang_scored: LangBitmap,
     lang_points: LangScores,
     word_scores: LangScores,
     heli_score: BTreeMap<OrderedFloat<f32>, Vec<Lang>>,
+    pub use_confidence: bool,
 }
 
-
+/// A clone of Identifier creates new instances for all the members
+/// except the model, which is a pointer to avoid copying it.
+impl Clone for Identifier {
+    fn clone(&self) -> Self {
+        Self::new(
+            self.model.clone(),
+            self.use_confidence,
+        )
+    }
+}
 
 impl Identifier {
     const PENALTY_VALUE : f32 = 7.0;
     const MAX_NGRAM : usize = 6;
 
     pub fn load(modelpath: &Path, langs: Option<Vec<Lang>>) -> Result<Self> {
-        Ok(Self::new(Arc::new(Model::load(modelpath, langs)?)))
+        Ok(Self::new(
+                Arc::new(Model::load(modelpath, langs)?),
+                false,
+            ))
     }
 
-    pub fn new(model: Arc<Model>) -> Self {
+    pub fn new(model: Arc<Model>, use_confidence: bool) -> Self {
         Self {
             model: model,
             lang_scored: LangBitmap::new(),
             lang_points: LangScores::new(),
             word_scores: LangScores::new(),
             heli_score: BTreeMap::new(),
+            use_confidence: use_confidence,
         }
+    }
+
+    /// Enable use of confidence thresholds
+    pub fn enable_confidence(&mut self) -> &mut Self {
+        self.use_confidence = true;
+        self
     }
 
     /// Get the most probable language according to the current language scores
     fn pick_winner(&mut self) -> (Lang, Option<f32>) {
         // if only one lang is requested, just search for the minimum score (winner)
-        let mut min = Self::PENALTY_VALUE + 1.0;
+        let mut score = Self::PENALTY_VALUE + 1.0;
         let mut winner_lang = Lang::und;
 
         for lang in Lang::iter() {
             let points = self.lang_points.get(lang);
-            if points <= min {
-                min = points;
+            if points <= score {
+                score = points;
                 winner_lang = lang;
             }
         }
 
-        (winner_lang.collapse(), Some(min))
+        // Compute confidence value
+        // confidence is absolute difference with the second scoring language
+        if self.use_confidence {
+            let mut second = Self::PENALTY_VALUE + 1.0;
+            for lang in Lang::iter() {
+                let points = self.lang_points.get(lang);
+                if lang != winner_lang && points <= second {
+                    second = points;
+                }
+            }
+            score = second - score;
+            if self.model.confidence.get(winner_lang) > score {
+                winner_lang = Lang::und;
+            }
+        }
+
+        (winner_lang.collapse(), Some(score))
     }
 
     /// Build a ranking of the top k scoring languages,
@@ -70,7 +111,7 @@ impl Identifier {
     fn rank_langs(&mut self, k: usize) -> Vec<(Lang, Option<f32>)> {
         //TODO collapse macro languages
         self.heli_score.clear();
-        let mut winners = Vec::new();
+        let mut winners = Vec::with_capacity(k);
         for lang in Lang::iter() {
             let ord_score = OrderedFloat(self.lang_points.get(lang));
             if let Some(langs) = self.heli_score.get_mut(&ord_score) {
@@ -290,7 +331,7 @@ impl Identifier {
     pub fn par_identify<I>(&self, texts: I) -> Vec<(Lang, Option<f32>)>
         where I: IntoParallelIterator<Item = String>
     {
-        // Each thread initializes with its own reference to the identifier object
+        // Each thread initializes with its own copy to the identifier object
         thread_local! {
             static IDENTIFIER_LOCAL: Mutex<Option<Identifier>> = Mutex::new(None);
         }
@@ -303,7 +344,7 @@ impl Identifier {
                     // Only initialize the identifier once
                     let mut identifier = identifier.lock().unwrap();
                     if identifier.is_none() {
-                        *identifier = Some(Identifier::new(self.model.clone()));
+                        *identifier = Some(self.clone());
                     }
                     identifier.as_mut().unwrap().identify(&text)
                 })

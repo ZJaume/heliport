@@ -186,7 +186,7 @@ impl ModelNgram {
 
 pub struct Model {
     inner: [ModelNgram; OrderNgram::COUNT],
-    confidence: LangScores,
+    pub confidence: LangScores,
 }
 
 impl Model {

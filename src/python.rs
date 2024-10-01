@@ -24,26 +24,22 @@ pub fn module_path() -> PyResult<PathBuf> {
 }
 
 /// Bindings to Python
-#[pyclass(name = "Identifier")]
-pub struct PyIdentifier {
-    inner: Identifier,
-}
-
 #[pymethods]
-impl PyIdentifier {
+impl Identifier {
     #[new]
-    fn new() -> PyResult<Self> {
+    #[pyo3(signature = (use_confidence = false))]
+    fn py_new(use_confidence: bool) -> PyResult<Self> {
         let modulepath = module_path().expect("Error loading python module path");
-        let identifier = Identifier::load(&modulepath, None)
-            .or_abort(1);
-
-        Ok(Self {
-            inner: identifier,
-        })
+        let mut identifier = Identifier::load(&modulepath, None).or_abort(1);
+        if use_confidence {
+            identifier.enable_confidence();
+        }
+        Ok(identifier)
     }
 
-    fn identify(&mut self, text: &str) -> String {
-        self.inner.identify(text).0.to_string()
+    #[pyo3(name = "identify")]
+    fn py_identify(&mut self, text: &str) -> String {
+        self.identify(text).0.to_string()
     }
 }
 
@@ -56,7 +52,7 @@ impl PyIdentifier {
 fn heliport(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     #[cfg(feature = "cli")]
     m.add_wrapped(wrap_pyfunction!(cli_run))?;
-    m.add_class::<PyIdentifier>()?;
+    m.add_class::<Identifier>()?;
     // m.add_class::<PyLang>()?;
 
     Ok(())

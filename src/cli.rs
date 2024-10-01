@@ -98,7 +98,7 @@ impl DownloadCmd {
     }
 }
 
-#[derive(Args, Clone)]
+#[derive(Args, Clone, Debug)]
 struct IdentifyCmd {
     #[arg(help="Number of parallel threads to use.\n0 means no multi-threading\n1 means running the identification in a separated thread\n>1 run multithreading",
           short='j',
@@ -111,6 +111,11 @@ struct IdentifyCmd {
         default_value_t=100000,
         help="Number of text segments to pre-load for parallel processing")]
     batch_size: usize,
+
+    #[arg(short = 'c', long, help="Use confidence thresholds. Predictions under the thresholds will become 'und'")]
+    use_confidence: bool,
+    #[arg(short = 's', long, help="Print raw scores (higher is better) or confidence (higher is better) in case '-c' is enabled")]
+    print_scores: bool,
 
     #[arg(help="Input file, default: stdin", )]
     input_file: Option<PathBuf>,
@@ -155,6 +160,7 @@ impl IdentifyCmd {
         if let Some(r) = &self.relevant_langs {
             relevant_langs = Some(parse_langs(&r).or_abort(1));
         }
+        debug!("{:?}", self);
 
         // Obtain model directory
         let model_dir;
@@ -185,8 +191,11 @@ impl IdentifyCmd {
         }
 
         // Load identifier
-        let identifier = Identifier::load(&model_dir, relevant_langs)
+        let mut identifier = Identifier::load(&model_dir, relevant_langs)
             .or_abort(1);
+        if self.use_confidence {
+            identifier.enable_confidence();
+        }
 
         // do not run on separated threads if multithreading is not requested
         if self.threads == 0 {
@@ -200,7 +209,7 @@ impl IdentifyCmd {
 
     // Run using the parallel identification method
     // read in batches
-    fn run_parallel<R, W>(self, identifier: Identifier, reader: R, mut writer: W) -> Result<()>
+    fn run_parallel<'a, R, W>(self, identifier: Identifier, reader: R, mut writer: W) -> Result<()>
         where R: BufRead,
               W: Write,
     {
@@ -223,8 +232,8 @@ impl IdentifyCmd {
                     line.or_abort(1)
                 })
                 .collect();
-            for b in identifier.par_identify(batch) {
-                writeln!(writer, "{}", b.0)?;
+            for pred in identifier.par_identify(batch) {
+                self.print_result(&mut writer, &pred).or_abort(1);
             }
         }
         Ok(())
@@ -236,10 +245,22 @@ impl IdentifyCmd {
               W: Write,
     {
         // Process line by line
-        for line in reader.lines() {
-            writeln!(writer, "{}", identifier.identify(&line?).0)?;
+        for line_res in reader.lines() {
+            let line = line_res?;
+            let pred = identifier.identify(&line);
+            self.print_result(&mut writer, &pred)?;
         }
         Ok(())
+    }
+
+    fn print_result<W>(&self, writer: &mut W, pred: &(Lang, Option<f32>)) -> io::Result<()>
+        where W: Write,
+    {
+        if self.print_scores {
+            writeln!(writer, "{}\t{:.4}", pred.0, pred.1.unwrap())
+        } else {
+            writeln!(writer, "{}", pred.0)
+        }
     }
 }
 
