@@ -190,7 +190,7 @@ pub struct Model {
 }
 
 impl Model {
-    pub const CONFIDENCE_FILE: &str = "confidenceThresholds";
+    pub const CONFIDENCE_FILE: &'static str = "confidenceThresholds";
 
     pub fn load(modelpath: &Path, langs: Option<Vec<Lang>>) -> Result<Self> {
         debug!("Loading model from '{}", modelpath.display());
@@ -235,7 +235,7 @@ impl Model {
         let mut confidence = LangScores::new();
         let confidence_file = fs::read_to_string(modelpath.join(Self::CONFIDENCE_FILE))
             .with_context(|| "Could not open confidenceThreshold file")?;
-        for (i, line) in confidence_file.trim_ascii_end().split('\n').enumerate() {
+        for (i, line) in confidence_file.trim_end().split('\n').enumerate() {
             let parts: Vec<&str> = line.split('\t').collect();
             // Check that the number of fields are correct and the language exists
             if parts.len() != 2 {
