@@ -23,6 +23,9 @@ pub fn module_path() -> PyResult<PathBuf> {
 }
 
 /// Bindings to Python
+/// //TODO support returning both lang+score
+/// //TODO support parallel identification
+/// //TODO support loading relevant languages from text
 #[pymethods]
 impl Identifier {
     #[new]
