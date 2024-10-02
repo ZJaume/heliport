@@ -86,6 +86,7 @@ impl Identifier {
                 winner_lang = lang;
             }
         }
+        debug!("Winner lang '{winner_lang}' with score '{score}'");
 
         // Compute confidence value
         // confidence is absolute difference with the second scoring language
@@ -98,9 +99,11 @@ impl Identifier {
                 }
             }
             score = second - score;
-            if self.model.confidence.get(winner_lang) > score {
+            let threshold = self.model.confidence.get(winner_lang.collapse());
+            if threshold > score {
                 winner_lang = Lang::und;
             }
+            debug!("Winner lang '{winner_lang}' with confidence '{score}' and threshold '{threshold}'");
         }
 
         (winner_lang.collapse(), Some(score))
