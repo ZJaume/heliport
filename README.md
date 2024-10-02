@@ -65,6 +65,20 @@ let lang, score = identifier.identify("L'aigua clara");
 assert_eq!(lang, Lang::cat_Latn);
 ```
 
+## Differences with HeLI-OTS
+Although `heliport` currently uses the same models as HeLI-OTS 2.0 and the 
+identification algorithm is almost the same, there are a few differences
+(mainly during pre-processing) that may cause different results.
+However, in most case, these should not deacrease accuracy and should not happen frequently.
+
+**Note**: Both tools have a pre-processing step for each identified text to
+remove all non-alphabetic characters.
+
+The implementation differences that can change results are:
+ - `HeLI` during preprocessing removes urls and words beginning with `@`, while `heliport` does not.
+ - Since 1.5, during preprocessing, HeLI repeats every word that does not start with capital letter, This is probably to penalize proper nouns. However, in our tests, we have not find a significant improvement with this. Therefore,to avoid multiplying the cost of prediction by almost x2, this has not been implemented. In the future it might end up being implemented if there is need for it and can be implemented efficiently.
+ - Rust and Java sometimes have small differences on the smallest decimals in a float, so the stored n-gram probabilities are not exactly the same. But this is very unlikely to affect predicted labels.
+
 ## Benchmarks
 Speed benchmarks with 100k random sentences from [OpenLID](https://github.com/laurieburchell/open-lid-dataset), all the tools running single-threaded:
 | tool | time (s) |
