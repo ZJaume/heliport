@@ -173,6 +173,7 @@ impl Identifier {
         // lowercase and remove non-alphabetic characters
         //TODO is it really remove all non alpha? because I found words with punctuation in
         //langmodel entries
+        debug!("Input text: '{}'", text);
         let lowercased = text.to_lowercase();
         let replaced = RE_NON_ALPHA.replace_all(&lowercased, " ");
         self.heli_score.clear();
