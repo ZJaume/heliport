@@ -79,6 +79,7 @@ impl Identifier {
         let mut score = Self::PENALTY_VALUE + 1.0;
         let mut winner_lang = Lang::und;
 
+        // Get the lang with minimum score
         for lang in Lang::iter() {
             let points = self.lang_points.get(lang);
             if points <= score {
@@ -86,19 +87,24 @@ impl Identifier {
                 winner_lang = lang;
             }
         }
+        winner_lang = winner_lang.collapse();
         debug!("Winner lang '{winner_lang}' with score '{score}'");
 
         // Compute confidence value
         // confidence is absolute difference with the second scoring language
+        // only collapsed macrolangs can be taken into account
         if !self.ignore_confidence {
             let mut second = Self::PENALTY_VALUE + 1.0;
             for lang in Lang::iter() {
                 let points = self.lang_points.get(lang);
-                if lang != winner_lang && points <= second {
+                // compare only collapsed macrolangs
+                if lang.collapse() != winner_lang && points <= second {
                     second = points;
                 }
             }
+            // Compute absolute difference
             score = second - score;
+            // Get the threshold, thresholds are only for macrolangs, so collapse
             let threshold = self.model.confidence.get(winner_lang.collapse());
             if threshold > score {
                 winner_lang = Lang::und;
@@ -106,7 +112,7 @@ impl Identifier {
             debug!("Winner lang '{winner_lang}' with confidence '{score}' and threshold '{threshold}'");
         }
 
-        (winner_lang.collapse(), Some(score))
+        (winner_lang, Some(score))
     }
 
     /// Build a ranking of the top k scoring languages,
