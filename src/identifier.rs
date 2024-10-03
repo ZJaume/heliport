@@ -362,10 +362,12 @@ impl Identifier {
 mod tests {
     use crate::identifier::Identifier;
     use crate::lang::Lang;
+    use crate::python;
+    use pyo3;
 
-    const INPUT_SENTS: [&str;12] = [
+    const INPUT_SENTS: [&str;13] = [
         "L'aigua clara",
-        "Hola, qué tal?",
+        "Hola, ¿qué tal?",
         "Korvausinvestoinnit on otettu huomioon liiketoimintasuunnitelmassa rahoituskuluina ja poistoina.",
         "而目前各方都在追问到底谁应该为这场大疫情在中国的扩散承担责任。",
         "Pēc nejaušās izvēles izraudzītas sešas vistas no vielas saņemšanas grupas un sešas vistas no nesēja kontroles grupas, un trīs vistas no pozitīvās kontroles grupas (ja šo grupu pēta paralēli) jānogalina dažas dienas pēc dozēšanas, un galvas smadzenes un muguras smadzenes jāsagatavo un jāanalizē, lai noteiktu ar neiropātiju saistītās esterāzes kavēšanas aktivitāti.",
@@ -376,30 +378,35 @@ mod tests {
         "Batangiye gushyiraho imihati myinshi no kumara igihe kinini bakurikirana inyungu z'iby'umwuka, ari na ko bakora uko bashoboye ngo begere Yehova.",
         "The Encyclopedia of Religion gir flere opplysninger: \"Dens visjon av en menneskehet som hadde behov for Kristi evangelium, talte for igangsettelse og rask utvidelse av misjonsvirksomheten, både utenlands og innenlands.\"",
         "Kui lõike 5 alusel vastu võetud tehnilistest rakendusmeetmetest ei tulene teisiti, võivad pädevad riigiasutused võtta vastu suuniseid ja vajaduse korral anda juhiseid selle kohta, millistel asjaoludel peab teenuseosutaja teatama isikuandmetega seotud rikkumisest ning millises vormis ja mil viisil seda tuleb teha.",
+        "\u{0aae}\u{0a9c}\u{0abe}\u{0a95} \u{0aa4}\u{0ab0}\u{0ac0}\u{0a95}\u{0ac7} @K.",
     ];
     // Expected predictions from original HeLI
-    const EXPECTED_PREDS: [(Lang, Option<f32>);12] = [
-        (Lang::Cat, Some(3.9435382)),
-        (Lang::Cat, Some(4.047136 )),
-        (Lang::Fin, Some(3.4751024)),
-        (Lang::Cmn, Some(4.429534 )),
-        (Lang::Lav, Some(3.6547067)),
-        (Lang::Ara, Some(3.468608 )),
-        (Lang::Fin, Some(6.273052 )),
-        (Lang::Pol, Some(3.8661745)),
-        (Lang::Nld, Some(3.5002592)),
-        (Lang::Tso, Some(5.6970944)),
-        (Lang::Nob, Some(3.548138 )),
-        (Lang::Est, Some(3.4789875)),
+    const EXPECTED_PREDS: [(Lang, Option<f32>);13] = [
+        (Lang::cat, Some(1.5613)),
+        (Lang::spa, Some(0.2340)),
+        (Lang::fin, Some(1.8580)),
+        (Lang::cmn, Some(2.5705)),
+        (Lang::lav, Some(2.2733)),
+        (Lang::ara, Some(2.6973)),
+        (Lang::gaz, Some(3.3978)),
+        (Lang::pol, Some(0.3492)),
+        (Lang::nld, Some(0.7148)),
+        (Lang::tso, Some(0.2414)),
+        (Lang::nob, Some(0.9093)),
+        (Lang::est, Some(2.6729)),
+        (Lang::und, Some(0.6115)), // In heli this is guj 3.2886949 because of an @ in the text
     ];
 
     #[test_log::test]
     fn test_output_langs() {
-        let mut identifier = Identifier::new(String::from("gramdict.ser"),
-                                         String::from("wordict.ser"));
+        pyo3::prepare_freethreaded_python();
+        let mut identifier = Identifier::load(
+            &python::module_path().expect("Python module needs to be installed"),
+            None,
+        ).expect("Could not load model, please run 'heliport bianrize' if you haven't");
 
-        let pred = identifier.identify(&String::from("Hola, qué tal?"));
-        assert_eq!(pred.0, Lang::Cat);
+        let pred = identifier.identify(&String::from("Hola, ¿qué tal?"));
+        assert_eq!(pred.0, Lang::spa);
 
         for (text, expected) in INPUT_SENTS.iter().zip(EXPECTED_PREDS) {
             let pred = identifier.identify(&text.to_string());
@@ -407,19 +414,18 @@ mod tests {
         }
     }
 
-    #[ignore]
     #[test_log::test]
     fn test_output_probs() {
-        let mut identifier = Identifier::new(String::from("gramdict.ser"),
-                                         String::from("wordict.ser"));
-
-        let pred = identifier.identify(&String::from("Hola, qué tal?"));
-        assert_eq!(pred, (Lang::Cat, Some(4.047136_f32)));
+        pyo3::prepare_freethreaded_python();
+        let mut identifier = Identifier::load(
+            &python::module_path().expect("Python module needs to be installed"),
+            None,
+        ).expect("Could not load model, please run 'heliport bianrize' if you haven't");
 
         for (text, expected) in INPUT_SENTS.iter().zip(EXPECTED_PREDS) {
             let pred = identifier.identify(&text.to_string());
-            let pred_score = format!("{:.3}", pred.1.expect("Shouldn't be a none"));
-            let expected_score = format!("{:.3}", expected.1.expect("Shouldn't be a none"));
+            let pred_score = format!("{:.4}", pred.1.expect("Shouldn't be a none"));
+            let expected_score = format!("{:.4}", expected.1.expect("Shouldn't be a none"));
             assert!(pred_score == expected_score,
                 "expected  = {:?}\npredict = {:?}", pred, expected);
         }
