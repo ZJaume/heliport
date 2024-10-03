@@ -51,7 +51,7 @@ impl Identifier {
 
     pub fn load(modelpath: &Path, langs: Option<Vec<Lang>>) -> Result<Self> {
         Ok(Self::new(
-                Arc::new(Model::load(modelpath, langs)?),
+                Arc::new(Model::load(modelpath, false, langs)?),
                 false,
             ))
     }

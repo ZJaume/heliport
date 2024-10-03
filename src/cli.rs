@@ -53,7 +53,7 @@ impl BinarizeCmd {
         for model_type in OrderNgram::iter() {
             let type_repr = model_type.to_string();
             info!("Loading {type_repr} model");
-            let model = ModelNgram::from_text(&model_path, model_type)
+            let model = ModelNgram::from_text(&model_path, model_type, None)
                 .or_abort(1);
             let size = model.dic.len();
             info!("Created {size} entries");

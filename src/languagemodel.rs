@@ -46,6 +46,18 @@ impl ModelNgram {
         self.dic.contains_key(key)
     }
 
+    pub fn from_text(
+        model_dir: &Path,
+        model_type: OrderNgram,
+        langs: Option<Vec<Lang>>,
+    ) -> Result<Self> {
+        if let Some(l) = langs {
+            Self::from_text_langs(model_dir, model_type, l)
+        } else {
+            Self::from_text_all(model_dir, model_type)
+        }
+    }
+
     pub fn from_text_langs(
         model_dir: &Path,
         model_type: OrderNgram,
@@ -68,8 +80,7 @@ impl ModelNgram {
         Ok(model)
     }
 
-
-    pub fn from_text(model_dir: &Path, model_type: OrderNgram) -> Result<Self> {
+    pub fn from_text_all(model_dir: &Path, model_type: OrderNgram) -> Result<Self> {
         let mut model = ModelNgram {
             dic: HashMap::default(),
             model_type: model_type.clone(),
@@ -192,19 +203,19 @@ pub struct Model {
 impl Model {
     pub const CONFIDENCE_FILE: &'static str = "confidenceThresholds";
 
-    pub fn load(modelpath: &Path, langs: Option<Vec<Lang>>) -> Result<Self> {
+    pub fn load(modelpath: &Path, from_text: bool, langs: Option<Vec<Lang>>) -> Result<Self> {
         debug!("Loading model from '{}", modelpath.display());
         // Run a separated thread to load each model
         let mut handles: Vec<thread::JoinHandle<_>> = Vec::new();
         for model_type in OrderNgram::iter() {
             let type_repr = model_type.to_string();
 
-            if let Some(ref l) = langs {
+            if from_text || langs.is_some() {
                 // Load model from text
                 let modelpath_copy = PathBuf::from(modelpath);
-                let langs_copy = l.clone();
+                let langs_copy = langs.clone();
                 handles.push(thread::spawn(move || {
-                    let model = ModelNgram::from_text_langs(
+                    let model = ModelNgram::from_text(
                         &modelpath_copy,
                         model_type,
                         langs_copy)?;
