@@ -112,9 +112,9 @@ struct IdentifyCmd {
         help="Number of text segments to pre-load for parallel processing")]
     batch_size: usize,
 
-    #[arg(short = 'c', long, help="Use confidence thresholds. Predictions under the thresholds will become 'und'")]
-    use_confidence: bool,
-    #[arg(short = 's', long, help="Print raw scores (higher is better) or confidence (higher is better) in case '-c' is enabled")]
+    #[arg(short = 'c', long, help="Ignore confidence thresholds. Predictions under the thresholds will not be labeled as 'und'")]
+    ignore_confidence: bool,
+    #[arg(short = 's', long, help="Print confidence score (higher is better) or raw score (higher is better) in case '-c' is provided")]
     print_scores: bool,
 
     #[arg(help="Input file, default: stdin", )]
@@ -193,8 +193,8 @@ impl IdentifyCmd {
         // Load identifier
         let mut identifier = Identifier::load(&model_dir, relevant_langs)
             .or_abort(1);
-        if self.use_confidence {
-            identifier.enable_confidence();
+        if self.ignore_confidence {
+            identifier.disable_confidence();
         }
 
         // do not run on separated threads if multithreading is not requested

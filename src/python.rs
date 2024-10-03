@@ -29,12 +29,12 @@ pub fn module_path() -> PyResult<PathBuf> {
 #[pymethods]
 impl Identifier {
     #[new]
-    #[pyo3(signature = (use_confidence = false))]
-    fn py_new(use_confidence: bool) -> PyResult<Self> {
+    #[pyo3(signature = (ignore_confidence = false))]
+    fn py_new(ignore_confidence: bool) -> PyResult<Self> {
         let modulepath = module_path().expect("Error loading python module path");
         let mut identifier = Identifier::load(&modulepath, None)?;
-        if use_confidence {
-            identifier.enable_confidence();
+        if ignore_confidence {
+            identifier.disable_confidence();
         }
         Ok(identifier)
     }

@@ -31,7 +31,7 @@ pub struct Identifier {
     lang_points: LangScores,
     word_scores: LangScores,
     heli_score: BTreeMap<OrderedFloat<f32>, Vec<Lang>>,
-    pub use_confidence: bool,
+    pub ignore_confidence: bool,
 }
 
 /// A clone of Identifier creates new instances for all the members
@@ -40,7 +40,7 @@ impl Clone for Identifier {
     fn clone(&self) -> Self {
         Self::new(
             self.model.clone(),
-            self.use_confidence,
+            self.ignore_confidence,
         )
     }
 }
@@ -56,20 +56,20 @@ impl Identifier {
             ))
     }
 
-    pub fn new(model: Arc<Model>, use_confidence: bool) -> Self {
+    pub fn new(model: Arc<Model>, ignore_confidence: bool) -> Self {
         Self {
             model: model,
             lang_scored: LangBitmap::new(),
             lang_points: LangScores::new(),
             word_scores: LangScores::new(),
             heli_score: BTreeMap::new(),
-            use_confidence: use_confidence,
+            ignore_confidence: ignore_confidence,
         }
     }
 
     /// Enable use of confidence thresholds
-    pub fn enable_confidence(&mut self) -> &mut Self {
-        self.use_confidence = true;
+    pub fn disable_confidence(&mut self) -> &mut Self {
+        self.ignore_confidence = true;
         self
     }
 
@@ -90,7 +90,7 @@ impl Identifier {
 
         // Compute confidence value
         // confidence is absolute difference with the second scoring language
-        if self.use_confidence {
+        if !self.ignore_confidence {
             let mut second = Self::PENALTY_VALUE + 1.0;
             for lang in Lang::iter() {
                 let points = self.lang_points.get(lang);
