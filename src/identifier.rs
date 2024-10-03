@@ -23,8 +23,7 @@ lazy_static! {
             .expect("Error compiling non-alpha regex for Idenfifier");
 }
 
-#[cfg(feature = "python")]
-#[pyclass]
+#[cfg_attr(feature = "python", pyclass)]
 pub struct Identifier {
     model: Arc<Model>,
     lang_scored: LangBitmap,
