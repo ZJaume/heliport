@@ -1,4 +1,8 @@
 # heliport
+![License](https://img.shields.io/github/license/zjaume/heliport?color=blue)
+![PyPi-version](https://img.shields.io/pypi/v/heliport)
+
+
 A language identification tool which aims for both speed and accuracy.
 Mostly an efficient [HeLI-OTS](https://aclanthology.org/2022.lrec-1.416/) port to Rust,
 achieving 25x speedups while maintaining same accuracy levels.
