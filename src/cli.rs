@@ -13,8 +13,8 @@ use env_logger::Env;
 use strum::IntoEnumIterator;
 use target;
 
-use crate::languagemodel::{Model, ModelNgram, OrderNgram};
-use crate::lang::Lang;
+use heliport_model::languagemodel::{Model, ModelNgram, OrderNgram};
+use heliport_model::lang::Lang;
 use crate::identifier::Identifier;
 use crate::utils::Abort;
 use crate::python::module_path;
