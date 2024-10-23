@@ -262,9 +262,9 @@ impl Lang {
 
     pub fn collapse(&self) -> Self {
         match self {
-            Lang::fini | Lang::fink | Lang::finl | Lang::finm | Lang::fino | Lang::finp | Lang::finr | Lang::fins | Lang::fint | Lang::finx => return Lang::fin,
-            Lang::hbsbos | Lang::hbshrv | Lang::hbssrp => return Lang::hbs,
-            Lang::estvro => return Lang::est,
+            Lang::fini | Lang::fink | Lang::finl | Lang::finm | Lang::fino | Lang::finp | Lang::finr | Lang::fins | Lang::fint | Lang::finx => Lang::fin,
+            Lang::hbsbos | Lang::hbshrv | Lang::hbssrp => Lang::hbs,
+            Lang::estvro => Lang::est,
             Lang::msaind | Lang::msamalay | Lang::msamin | Lang::msazsm => Lang::msa,
             Lang::sagb => Lang::sag,
             Lang::undhtml => Lang::und,
