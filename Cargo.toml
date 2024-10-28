@@ -14,6 +14,12 @@ crate-type = ["lib", "cdylib"]
 [workspace]
 members = ["heliport-model"]
 
+[build-dependencies]
+heliport-model = { path = "heliport-model" }
+anyhow = "1.0"
+log = { version = "0.4" }
+strum = { version = "0.25", features = ["derive"] }
+
 [dependencies]
 heliport-model = { path = "heliport-model" }
 regex = "1.10"
