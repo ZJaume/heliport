@@ -257,7 +257,7 @@ pub enum Lang {
 
 impl Lang {
     pub fn is_cjk(&self) -> bool {
-        *self == Lang::jpn || *self == Lang::kor || *self == Lang::cmn
+        *self == Lang::jpn || *self == Lang::kor || *self == Lang::cmn || *self == Lang::cdo
     }
 
     pub fn collapse(&self) -> Self {
