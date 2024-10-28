@@ -1,6 +1,5 @@
 # Ignore binary model files
-*.ser
-*.bin
+heliport.data
 
 # Wheels
 wheels*
