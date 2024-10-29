@@ -52,22 +52,11 @@ jobs:
           args: --release --out dist --find-interpreter
           sccache: 'true'
           manylinux: auto
-
-      - run: pip install dist/*-cp39-*.whl
-      - run: heliport binarize
-
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
           name: wheels-linux-${{ matrix.platform.target }}
           path: dist
-      - name: Upload models
-        uses: actions/upload-artifact@v4
-        with:
-          name: models-linux-${{ matrix.platform.target }}
-          path: |
-            /opt/hostedtoolcache/Python/${{ steps.setup-python.outputs.python-version }}/x64/lib/python3.9/site-packages/heliport/*.bin
-            /opt/hostedtoolcache/Python/${{ steps.setup-python.outputs.python-version }}/x64/lib/python3.9/site-packages/heliport/confidenceThresholds
 
   sdist:
     runs-on: ubuntu-22.04
@@ -97,12 +86,6 @@ jobs:
       - uses: actions/download-artifact@v4
       - name: Display downloaded files
         run: ls -R
-      - name: Archive model files
-        run: for i in models-*; do tar czvf $i.tgz $i/*; done
-      - name: Upload Github release assets
-        uses: softprops/action-gh-release@v2
-        with:
-          files: models-*.tgz
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
         with:
