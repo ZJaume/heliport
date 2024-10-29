@@ -3,12 +3,13 @@ use std::fs::{copy, File};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::env;
+use std::process::exit;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand, Args};
 use itertools::Itertools;
 use pyo3::prelude::*;
-use log::{info, debug};
+use log::{error, warn, info, debug};
 use env_logger::Env;
 use strum::IntoEnumIterator;
 use target;
@@ -43,12 +44,27 @@ struct BinarizeCmd {
     input_dir: Option<PathBuf>,
     #[arg(help="Output directory to place the binary files")]
     output_dir: Option<PathBuf>,
+    #[arg(short, long, help="Force overwrite of output files if they already exist")]
+    force: bool,
 }
 
 impl BinarizeCmd {
     fn cli(self) -> PyResult<()> {
         let model_path = self.input_dir.unwrap_or(PathBuf::from("./LanguageModels"));
         let save_path = self.output_dir.unwrap_or(module_path().unwrap());
+
+        // Fail and warn the use if there is already a model
+        if !self.force &&
+            save_path.join(
+                format!("{}.bin", OrderNgram::Word.to_string())
+                ).exists()
+        {
+            warn!("Binarized models are now included in the PyPi package, \
+            there is no need to binarize the model unless you are training a new one"
+                );
+            error!("Output model already exists, use '-f' to force overwrite");
+            exit(1);
+        }
 
         for model_type in OrderNgram::iter() {
             let type_repr = model_type.to_string();
