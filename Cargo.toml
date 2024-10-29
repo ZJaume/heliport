@@ -47,6 +47,6 @@ test-log = "0.2.15"
 [features]
 # Put log features in default, to allow crates using heli as a library, disable them
 default = ["cli", "log/max_level_debug", "log/release_max_level_debug"]
-cli = ["download", "python", "dep:clap", "dep:target"]
+cli = ["python", "dep:clap", "dep:target"]
 download = ["dep:tokio", "dep:tempfile", "dep:reqwest", "dep:futures-util"]
 python = ["dep:pyo3"]

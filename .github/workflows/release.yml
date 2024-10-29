@@ -49,9 +49,10 @@ jobs:
                 ;;
             esac
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter
-          sccache: 'true'
+          args: --release --out dist --find-interpreter -vv
+          sccache: 'false'
           manylinux: auto
+      - run: ls -R
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
