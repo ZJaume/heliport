@@ -1,13 +1,11 @@
-use std::path::{Path, PathBuf};
-use std::fs;
+use std::path::{PathBuf};
 use std::process::exit;
 
 use clap::Args;
-use log::{error, warn, info};
+use log::{error, warn};
 use pyo3::prelude::*;
-use strum::IntoEnumIterator;
 
-use heliport_model::languagemodel::{Model, ModelNgram, OrderNgram};
+use heliport_model::languagemodel::{binarize, OrderNgram};
 use crate::utils::Abort;
 use crate::python::module_path;
 
@@ -39,26 +37,7 @@ impl BinarizeCmd {
             exit(1);
         }
 
-        for model_type in OrderNgram::iter() {
-            let type_repr = model_type.to_string();
-            info!("Loading {type_repr} model");
-            let model = ModelNgram::from_text(&model_path, model_type, None)
-                .or_abort(1);
-            let size = model.dic.len();
-            info!("Created {size} entries");
-            let filename = save_path.join(format!("{type_repr}.bin"));
-            info!("Saving {type_repr} model");
-            model.save(Path::new(&filename)).or_abort(1);
-        }
-        info!("Copying confidence thresholds file");
-        fs::copy(
-            model_path.join(Model::CONFIDENCE_FILE),
-            save_path.join(Model::CONFIDENCE_FILE),
-        ).or_abort(1);
-
-        info!("Saved models at '{}'", save_path.display());
-        info!("Finished");
-
+        binarize(&save_path, &model_path).or_abort(1);
         Ok(())
     }
 }

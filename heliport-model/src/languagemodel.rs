@@ -9,7 +9,7 @@ use std::thread;
 
 use anyhow::{Context, Result, bail};
 use bitcode;
-use log::{debug, warn};
+use log::{info, debug, warn};
 use strum::{Display, EnumCount, IntoEnumIterator};
 use strum_macros::EnumIter;
 
@@ -287,6 +287,29 @@ impl Index<usize> for Model {
     fn index(&self, num: usize) -> &Self::Output {
         &self.inner[num]
     }
+}
+
+/// Binarize models and save in a path
+pub fn binarize(save_path: &Path, model_path: &Path) -> Result<()> {
+    for model_type in OrderNgram::iter() {
+        let type_repr = model_type.to_string();
+        info!("Loading {type_repr} model");
+        let model = ModelNgram::from_text(&model_path, model_type, None)?;
+        let size = model.dic.len();
+        info!("Created {size} entries");
+        let filename = save_path.join(format!("{type_repr}.bin"));
+        info!("Saving {type_repr} model");
+        model.save(Path::new(&filename))?;
+    }
+    info!("Copying confidence thresholds file");
+    fs::copy(
+        model_path.join(Model::CONFIDENCE_FILE),
+        save_path.join(Model::CONFIDENCE_FILE),
+    )?;
+
+    info!("Saved models at '{}'", save_path.display());
+    info!("Finished");
+    Ok(())
 }
 
 #[cfg(test)]

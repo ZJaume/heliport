@@ -3,12 +3,10 @@ use std::fs;
 use std::path::PathBuf;
 
 use anyhow::Result;
-use log::{info};
-use strum::IntoEnumIterator;
 
-use heliport_model::languagemodel::{Model, ModelNgram, OrderNgram};
+use heliport_model::languagemodel::binarize;
 
-fn main() -> Result<(), std::io::Error> {
+fn main() -> Result<()> {
     let mut model_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     model_path.push("LanguageModels");
 
@@ -26,25 +24,5 @@ fn main() -> Result<(), std::io::Error> {
     );
     println!("cargo:rerun-if-changed=build.rs");
 
-    //TODO parallelize
-    for model_type in OrderNgram::iter() {
-        let type_repr = model_type.to_string();
-        info!("Loading {type_repr} model");
-        let model = ModelNgram::from_text(&model_path, model_type, None)
-            .unwrap();
-        let size = model.dic.len();
-        info!("Created {size} entries");
-        let filename = save_path.join(format!("{type_repr}.bin"));
-        info!("Saving {type_repr} model");
-        model.save(&filename).unwrap();
-    }
-    info!("Copying confidence thresholds file");
-    fs::copy(
-        model_path.join(Model::CONFIDENCE_FILE),
-        save_path.join(Model::CONFIDENCE_FILE),
-    ).unwrap();
-
-    info!("Finished");
-
-    Ok(())
+    binarize(&save_path, &model_path)
 }
