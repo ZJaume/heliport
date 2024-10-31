@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+
+### Changed
+- Include binarized model in the wheel.
+- Binarize model during compilation.
+- Separate languagemodel stuff in a subpackage.
+- Disable download feature by default.
+- Use Rustls for download instead of OpenSSL (less hassle when building from source).
+
+### Fixed
+- Fix compilation without python feature.
+- Min Dong missing as CJK language.
+- Removed old entrypoints.
 
 ## v0.7.0
 
