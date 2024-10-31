@@ -31,3 +31,5 @@ heliport-download = "heliport:cli_download"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
+data = "heliport.data"
+exclude = ["heliport.data/.gitkeep"]

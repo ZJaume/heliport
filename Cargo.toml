@@ -11,8 +11,17 @@ name = "heliport"
 # use cdylib to enable maturin linkage
 crate-type = ["lib", "cdylib"]
 
+[workspace]
+members = ["heliport-model"]
+
+[build-dependencies]
+heliport-model = { path = "heliport-model" }
+anyhow = "1.0"
+log = { version = "0.4" }
+strum = { version = "0.25", features = ["derive"] }
+
 [dependencies]
-bitcode = "0.6"
+heliport-model = { path = "heliport-model" }
 regex = "1.10"
 unicode-blocks = "0.1.8"
 shingles = "0.1"
@@ -20,8 +29,6 @@ ordered-float = "4.2"
 log = { version = "0.4" }
 env_logger = "0.10"
 strum = { version = "0.25", features = ["derive"] }
-strum_macros = "0.25"
-wyhash2 = "0.2.1"
 pyo3 = { version = "0.22", features = ["gil-refs", "anyhow"], optional = true }
 target = { version = "2.1.0", optional = true }
 tempfile = { version = "3", optional = true }
@@ -40,6 +47,6 @@ test-log = "0.2.15"
 [features]
 # Put log features in default, to allow crates using heli as a library, disable them
 default = ["cli", "log/max_level_debug", "log/release_max_level_debug"]
-cli = ["download", "python", "dep:clap", "dep:target"]
+cli = ["python", "dep:clap", "dep:target"]
 download = ["dep:tokio", "dep:tempfile", "dep:reqwest", "dep:futures-util"]
 python = ["dep:pyo3"]

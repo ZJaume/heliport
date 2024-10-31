@@ -1,6 +1,5 @@
 # Ignore binary model files
-*.ser
-*.bin
+# but keep heliport.data dir so maturin picks it up when doing a clean build
 
 # Wheels
 wheels*
