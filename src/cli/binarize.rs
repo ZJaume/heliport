@@ -5,7 +5,7 @@ use clap::Args;
 use log::{error, warn};
 use pyo3::prelude::*;
 
-use heliport_model::languagemodel::{binarize, OrderNgram};
+use heliport_model::{binarize, OrderNgram};
 use crate::utils::Abort;
 use crate::python::module_path;
 

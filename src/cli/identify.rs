@@ -9,7 +9,7 @@ use itertools::Itertools;
 use log::{debug};
 use pyo3::prelude::*;
 
-use heliport_model::lang::Lang;
+use heliport_model::Lang;
 use crate::identifier::Identifier;
 use crate::utils::Abort;
 use crate::python::module_path;

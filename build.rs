@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 
-use heliport_model::languagemodel::binarize;
+use heliport_model::binarize;
 
 fn main() -> Result<()> {
     let mut model_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));

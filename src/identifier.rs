@@ -14,8 +14,8 @@ use rayon::prelude::*;
 #[cfg(feature = "python")]
 use pyo3::pyclass;
 
-use heliport_model::languagemodel::Model;
-use heliport_model::lang::{Lang, LangScores, LangBitmap};
+use heliport_model::Model;
+use heliport_model::{Lang, LangScores, LangBitmap};
 use crate::utils::is_cjk_block;
 
 lazy_static! {
