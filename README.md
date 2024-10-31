@@ -23,7 +23,6 @@ Install the requirements:
  - Python
  - PIP
  - [Rust](https://rustup.rs)
- - [OpenSSL](https://docs.rs/openssl/latest/openssl/#automatic)
 
 Clone the repo, build the package and binarize the model
 ```
