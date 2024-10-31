@@ -13,10 +13,6 @@ Install it in your environment
 ```
 pip install heliport
 ```
-then download the binarized model
-```
-heliport download
-```
 
 ### From source
 Install the requirements:
@@ -29,7 +25,6 @@ Clone the repo, build the package and binarize the model
 git clone https://github.com/ZJaume/heliport
 cd heliport
 pip install .
-heliport binarize
 ```
 
 ## Usage
@@ -39,9 +34,9 @@ Just run the `heliport identify` command that reads lines from stdin
 cat sentences.txt | heliport identify
 ```
 ```
-eng_latn
-cat_latn
-rus_cyrl
+eng
+cat
+rus
 ...
 ```
 
