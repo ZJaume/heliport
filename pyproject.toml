@@ -26,8 +26,6 @@ dynamic = ["version"]
 
 [project.scripts]
 heliport = "heliport:cli_run"
-heliport-compile = "heliport:cli_compile"
-heliport-download = "heliport:cli_download"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
