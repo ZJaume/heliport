@@ -19,6 +19,8 @@ use self::identify::IdentifyCmd;
 pub struct Cli {
     #[command(subcommand)]
     command: Commands,
+    #[arg(short, long, help="Do not print log messages")]
+    quiet: bool,
 }
 
 #[derive(Subcommand, Clone)]
@@ -41,7 +43,11 @@ pub fn cli_run() -> PyResult<()> {
     let os_args = std::env::args_os().skip(1);
     let args = Cli::parse_from(os_args);
     debug!("Module path found at: {}", module_path().expect("Could not found module path").display());
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    if !args.quiet {
+        env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    } else {
+        env_logger::Builder::from_env(Env::default().default_filter_or("error")).init();
+    }
 
     match args.command {
         #[cfg(feature = "download")]
