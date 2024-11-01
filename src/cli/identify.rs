@@ -2,11 +2,12 @@ use std::io::{self, BufRead, BufReader, Write, BufWriter};
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::time::Instant;
 
 use anyhow::{Context, Result};
 use clap::Args;
 use itertools::Itertools;
-use log::{debug};
+use log::{info, debug};
 use pyo3::prelude::*;
 
 use heliport_model::Lang;
@@ -71,10 +72,14 @@ fn parse_langs(langs_text: &Vec<String>) -> Result<Vec<Lang>> {
 
 impl IdentifyCmd {
     pub fn cli(self) -> PyResult<()> {
+        info!("Starting");
+        let now = Instant::now();
+
         // If provided, parse the list of relevant languages
         let mut relevant_langs = None;
         if let Some(r) = &self.relevant_langs {
             relevant_langs = Some(parse_langs(&r).or_abort(1));
+            info!("Using relevant langs: {:?}", relevant_langs.as_ref().unwrap());
         }
         debug!("{:?}", self);
 
@@ -106,19 +111,26 @@ impl IdentifyCmd {
             output_file = Box::new(io::stdout().lock());
         }
 
+        info!("Loading model");
         // Load identifier
         let mut identifier = Identifier::load(&model_dir, relevant_langs)
             .or_abort(1);
         if self.ignore_confidence {
+            info!("Disabled confidence thresholds");
             identifier.disable_confidence();
         }
 
         // do not run on separated threads if multithreading is not requested
         if self.threads == 0 {
+            info!("Running single-threaded");
             self.run_single(identifier, input_file, output_file).or_abort(1);
         } else {
+            info!("Running with {} threads", self.threads);
             self.run_parallel(identifier, input_file, output_file).or_abort(1);
         }
+
+        info!("Finished");
+        info!("Elapsed time: {:.2?}", now.elapsed());
         Ok(())
     }
 
