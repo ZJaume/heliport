@@ -14,6 +14,9 @@ crate-type = ["lib", "cdylib"]
 [workspace]
 members = ["heliport-model"]
 
+[profile.release]
+lto = "thin"
+
 [build-dependencies]
 heliport-model = { path = "heliport-model" }
 anyhow = "1.0"
