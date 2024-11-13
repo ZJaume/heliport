@@ -2,6 +2,7 @@ mod identify;
 #[cfg(feature = "download")]
 mod download;
 mod binarize;
+mod create_models;
 
 use clap::{Subcommand, Parser};
 use log::{debug};
@@ -13,6 +14,7 @@ use crate::python::module_path;
 use self::download::DownloadCmd;
 use self::binarize::BinarizeCmd;
 use self::identify::IdentifyCmd;
+use self::create_models::CreateModelCmd;
 
 #[derive(Parser, Clone)]
 #[command(version, about, long_about = None)]
@@ -33,6 +35,8 @@ enum Commands {
     Binarize(BinarizeCmd),
     #[command(about="Identify languages of input text", visible_alias="detect")]
     Identify(IdentifyCmd),
+    #[command(about="Create heliport models")]
+    CreateModel(CreateModelCmd),
 }
 
 
@@ -54,5 +58,6 @@ pub fn cli_run() -> PyResult<()> {
         Commands::Download(cmd) => { cmd.cli() },
         Commands::Binarize(cmd) => { cmd.cli() },
         Commands::Identify(cmd) => { cmd.cli() },
+        Commands::CreateModel(cmd) => { cmd.cli() },
     }
 }

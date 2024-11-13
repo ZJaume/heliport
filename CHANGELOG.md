@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## v0.8.0
 ### Added
+- Model creation command.
 
 ### Changed
 - Include binarized model in the wheel.

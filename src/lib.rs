@@ -6,3 +6,4 @@ pub mod utils;
 mod cli;
 #[cfg(feature = "python")]
 mod python;
+pub mod trainer;
