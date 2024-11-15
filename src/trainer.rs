@@ -1,11 +1,12 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write, BufWriter};
 use std::path::Path;
+use std::str::FromStr;
 
 use anyhow::{Context, Result};
 use counter::Counter;
 use lazy_static::lazy_static;
-use log::{info, debug};
+use log::{info, warn, debug};
 use rayon::prelude::*;
 use regex::Regex;
 use shingles::AsShingles;
@@ -13,7 +14,7 @@ use strum::IntoEnumIterator;
 
 use crate::utils::RE_NON_ALPHA;
 
-use heliport_model::{OrderNgram};
+use heliport_model::{Lang, OrderNgram};
 
 
 lazy_static! {
@@ -73,9 +74,10 @@ pub fn count_all_ngrams(input_file_path: &Path, output_dir: &Path, top_k: usize)
         .with_context(|| "Could not get first capture group from lang name regex")?
         .as_str();
     // Check that the language exists
-    // avoid this for now, as it will require compile with a new lang before training
-    // let lang = Lang::from_str(&lang_string)
-    //     .with_context(|| format!("Could not parse lang '{lang_string}'"))?;
+    // warn if does not exist
+    if Lang::from_str(&lang_string).is_err() {
+        warn!("Language code '{lang_string}' does not exist. Please add it if you want the model to be used");
+    }
     info!("Training '{lang_string}'");
 
     // Run training for each nggram order in parallel
