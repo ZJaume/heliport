@@ -3,10 +3,13 @@ use std::fs;
 use std::path::PathBuf;
 
 use anyhow::Result;
+use env_logger::Env;
 
 use heliport_model::binarize;
 
 fn main() -> Result<()> {
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+
     let mut model_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     model_path.push("LanguageModels");
 

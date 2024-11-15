@@ -22,6 +22,7 @@ heliport-model = { path = "heliport-model" }
 anyhow = "1.0"
 log = { version = "0.4" }
 strum = { version = "0.25", features = ["derive"] }
+env_logger = "0.10"
 
 [dependencies]
 heliport-model = { path = "heliport-model" }
