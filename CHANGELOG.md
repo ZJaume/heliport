@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## v0.8.0
 ### Added
 - Model creation command.
+- More verbosity during identification.
 
 ### Changed
 - Include binarized model in the wheel.
@@ -15,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate languagemodel stuff in a subpackage.
 - Disable download feature by default.
 - Use Rustls for download instead of OpenSSL (less hassle when building from source).
+- Parallelize model binarization.
+- Update Python bindings to PyO3 0.23.
 
 ### Fixed
 - Fix compilation without python feature.

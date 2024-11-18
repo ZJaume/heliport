@@ -1,11 +1,14 @@
 # heliport
 ![License](https://img.shields.io/github/license/zjaume/heliport?color=blue)
 ![PyPi-version](https://img.shields.io/pypi/v/heliport)
+![Python-version](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fgithub.com%2FZJaume%2Fheliport%2Fraw%2Frefs%2Fheads%2Fmain%2Fpyproject.toml)
+![Supported-languages](https://img.shields.io/badge/supported_languages-220-green)
 
 
-A language identification tool which aims for both speed and accuracy.
-Mostly an efficient [HeLI-OTS](https://aclanthology.org/2022.lrec-1.416/) port to Rust,
-achieving 25x speedups while maintaining same accuracy levels.
+A language identification tool which aims for both speed and accuracy, with support for [220 languages](LANGS.md).
+
+This tool is an efficient [HeLI-OTS](https://aclanthology.org/2022.lrec-1.416/) port to Rust,
+achieving 25x speedups while having almost identical output.
 
 ## Installation
 ### From PyPi
@@ -80,7 +83,7 @@ Options:
 >>> from heliport import Identifier
 >>> i = Identifier()
 >>> i.identify("L'aigua clara")
-'cat_latn'
+'cat'
 ```
 Remember to download or binarize the model first!
 
@@ -110,7 +113,7 @@ remove all non-alphabetic characters.
 The implementation differences that can change results are:
  - `HeLI` during preprocessing removes urls and words beginning with `@`, while `heliport` does not.
  - Since 1.5, during preprocessing, HeLI repeats every word that does not start with capital letter, This is probably to penalize proper nouns. However, in our tests, we have not find a significant improvement with this. Therefore,to avoid multiplying the cost of prediction by almost x2, this has not been implemented. In the future it might end up being implemented if there is need for it and can be implemented efficiently.
- - Rust and Java sometimes have small differences on the smallest decimals in a float, so the stored n-gram probabilities are not exactly the same. But this is very unlikely to affect predicted labels.
+ - Rust and Java implementations have small precision differences due to Rust accumulating probabilities with double precision floats.
 
 ## Benchmarks
 Speed benchmarks with 100k random sentences from [OpenLID](https://github.com/laurieburchell/open-lid-dataset), all the tools running single-threaded:
@@ -122,3 +125,9 @@ Speed benchmarks with 100k random sentences from [OpenLID](https://github.com/la
 | lingua all low preloaded | 23.34
 | fasttext openlid193 | 8.44 |
 | heliport | 2.33 |
+
+___
+
+![Connecting Europe Facility](https://www.paracrawl.eu/images/logo_en_cef273x39.png)
+
+All documents and software contained in this repository reflect only the authors' view. The Innovation and Networks Executive Agency of the European Union is not responsible for any use that may be made of the information it contains.
