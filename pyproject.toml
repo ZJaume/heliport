@@ -1,5 +1,5 @@
 [build-system]
-requires = ["maturin>=1.5,<2.0"]
+requires = ["maturin>=1.7.9,<2.0"]
 build-backend = "maturin"
 
 [project]
@@ -35,4 +35,3 @@ heliport = "heliport:cli_run"
 [tool.maturin]
 features = ["pyo3/extension-module"]
 data = "heliport.data"
-exclude = ["heliport.data/.gitkeep"]
