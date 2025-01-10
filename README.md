@@ -85,7 +85,6 @@ Options:
 >>> i.identify("L'aigua clara")
 'cat'
 ```
-Remember to download or binarize the model first!
 
 ### Rust crate
 ```rust
