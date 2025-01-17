@@ -21,7 +21,7 @@ env_logger = "0.10"
 strum = { version = "0.25", features = ["derive"] }
 strum_macros = "0.25"
 wyhash2 = "0.2.1"
-pyo3 = { version = "0.22", features = ["gil-refs"] }
+pyo3 = { version = "0.23" }
 
 [dev-dependencies]
 test-log = "0.2.15"

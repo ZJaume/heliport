@@ -22,12 +22,12 @@ pub fn pythonpath() -> PyResult<String> {
     let mut path = String::new();
     Python::with_gil(|py| {
         // Instead of hardcoding the module name, obtain it from the crate name at compile time
-        let module = PyModule::import_bound(py, env!("CARGO_PKG_NAME"))?;
-        let paths: Vec<&str> = module
+        let module = PyModule::import(py, env!("CARGO_PKG_NAME"))?;
+        let paths: Vec<String> = module
             .getattr("__path__")?
             .extract()?;
         // __path__ attribute returns a list of paths, return first
-        path.push_str(paths[0]);
+        path.push_str(&paths[0]);
         Ok(path)
     })
 }
