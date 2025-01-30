@@ -367,7 +367,7 @@ impl Identifier {
 #[cfg(test)]
 mod tests {
     use crate::identifier::Identifier;
-    use crate::lang::Lang;
+    use heliport_model::lang::Lang;
     use crate::python;
     use pyo3;
 
