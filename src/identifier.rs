@@ -67,7 +67,7 @@ impl Identifier {
     }
 
     /// Get the most probable language according to the current language scores
-    fn pick_winner(&mut self) -> (Lang, Option<f32>) {
+    fn pick_winner(&mut self) -> (Lang, f32) {
         // if only one lang is requested, just search for the minimum score (winner)
         let mut score = Self::PENALTY_VALUE + 1.0;
         let mut winner_lang = Lang::und;
@@ -105,12 +105,12 @@ impl Identifier {
             debug!("Winner lang '{winner_lang}' with confidence '{score}' and threshold '{threshold}'");
         }
 
-        (winner_lang, Some(score))
+        (winner_lang, score)
     }
 
     /// Build a ranking of the top k scoring languages,
     /// according to the current language scores
-    fn rank_langs(&mut self, k: usize) -> Vec<(Lang, Option<f32>)> {
+    fn rank_langs(&mut self, k: usize) -> Vec<(Lang, f32)> {
         //TODO collapse macro languages
         self.heli_score.clear();
         let mut winners = Vec::with_capacity(k);
@@ -129,7 +129,7 @@ impl Identifier {
         'outer: for _ in 0..k {
             if let Some((score, langs)) = self.heli_score.pop_first() {
                 for lang in langs {
-                    winners.push((lang, Some(score.into_inner())));
+                    winners.push((lang, score.into_inner()));
                     // There can be ties, indeed all langs that haven't been scored will be 7.0
                     // and a heli_score.pop will return more than one
                     // so we stop filling the array if k elements have been added
@@ -314,11 +314,11 @@ impl Identifier {
     /// Returns the language and score of the highest scoring language.
     /// If there are no alphabetical characters or language can not be determined
     /// it will return unk.
-    pub fn identify(&mut self, text: &str) -> (Lang, Option<f32>) {
+    pub fn identify(&mut self, text: &str) -> (Lang, f32) {
         if self.score_langs(text) {
             self.pick_winner()
         } else {
-            (Lang::und, Some(Self::PENALTY_VALUE))
+            (Lang::und, Self::PENALTY_VALUE)
         }
     }
 
@@ -327,18 +327,18 @@ impl Identifier {
     /// Return the list of top k most probable languages and their scores.
     /// If there are no alphabetical characters or language can not be determined
     /// it will return unk.
-    pub fn identify_topk(&mut self, text: &str, k: usize) -> Vec<(Lang, Option<f32>)> {
+    pub fn identify_topk(&mut self, text: &str, k: usize) -> Vec<(Lang, f32)> {
         if self.score_langs(text) {
             self.rank_langs(k)
         } else {
-            Vec::from([(Lang::und, Some(Self::PENALTY_VALUE))])
+            Vec::from([(Lang::und, Self::PENALTY_VALUE)])
         }
     }
 
     /// Parallel version of [`Self::identify`]
     ///
     /// Takes an iterator of text instances and returns a [`Vec`] with the results
-    pub fn par_identify<I>(&self, texts: I) -> Vec<(Lang, Option<f32>)>
+    pub fn par_identify<I>(&self, texts: I) -> Vec<(Lang, f32)>
         where I: IntoParallelIterator<Item = String>
     {
         // Each thread initializes with its own copy to the identifier object
@@ -387,20 +387,20 @@ mod tests {
         "\u{0aae}\u{0a9c}\u{0abe}\u{0a95} \u{0aa4}\u{0ab0}\u{0ac0}\u{0a95}\u{0ac7} @K.",
     ];
     // Expected predictions from original HeLI
-    const EXPECTED_PREDS: [(Lang, Option<f32>);13] = [
-        (Lang::cat, Some(1.5613)),
-        (Lang::spa, Some(0.2340)),
-        (Lang::fin, Some(1.8580)),
-        (Lang::cmn, Some(2.5705)),
-        (Lang::lav, Some(2.2733)),
-        (Lang::ara, Some(2.6973)),
-        (Lang::gaz, Some(3.3978)),
-        (Lang::pol, Some(0.3492)),
-        (Lang::nld, Some(0.7148)),
-        (Lang::tso, Some(0.2414)),
-        (Lang::nob, Some(0.9093)),
-        (Lang::est, Some(2.6729)),
-        (Lang::und, Some(0.6115)), // In heli this is guj 3.2886949 because of an @ in the text
+    const EXPECTED_PREDS: [(Lang, f32);13] = [
+        (Lang::cat, 1.5613),
+        (Lang::spa, 0.2340),
+        (Lang::fin, 1.8580),
+        (Lang::cmn, 2.5705),
+        (Lang::lav, 2.2733),
+        (Lang::ara, 2.6973),
+        (Lang::gaz, 3.3978),
+        (Lang::pol, 0.3492),
+        (Lang::nld, 0.7148),
+        (Lang::tso, 0.2414),
+        (Lang::nob, 0.9093),
+        (Lang::est, 2.6729),
+        (Lang::und, 0.6115), // In heli this is guj 3.2886949 because of an @ in the text
     ];
 
     #[test_log::test]
@@ -430,8 +430,8 @@ mod tests {
 
         for (text, expected) in INPUT_SENTS.iter().zip(EXPECTED_PREDS) {
             let pred = identifier.identify(&text.to_string());
-            let pred_score = format!("{:.4}", pred.1.expect("Shouldn't be a none"));
-            let expected_score = format!("{:.4}", expected.1.expect("Shouldn't be a none"));
+            let pred_score = format!("{:.4}", pred.1);
+            let expected_score = format!("{:.4}", expected.1);
             assert!(pred_score == expected_score,
                 "expected  = {:?}\npredict = {:?}", pred, expected);
         }

@@ -47,7 +47,7 @@ impl Identifier {
     #[pyo3(name = "identify_with_confidence")]
     fn py_identify_with_confidence(&mut self, text: &str) -> (String, f32) {
         let pred = self.identify(text);
-        (pred.0.to_string(), pred.1.unwrap())
+        (pred.0.to_string(), pred.1)
     }
 
     #[pyo3(name = "identify_topk_with_confidence")]
@@ -55,7 +55,7 @@ impl Identifier {
         let preds = self.identify_topk(text, k);
         let mut out = Vec::<_>::with_capacity(preds.len());
         for (pred, conf) in preds {
-            out.push((pred.to_string(), conf.unwrap()));
+            out.push((pred.to_string(), conf));
         }
         out
     }

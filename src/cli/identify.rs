@@ -181,11 +181,11 @@ impl IdentifyCmd {
         Ok(())
     }
 
-    fn print_result<W>(&self, writer: &mut W, pred: &(Lang, Option<f32>)) -> io::Result<()>
+    fn print_result<W>(&self, writer: &mut W, pred: &(Lang, f32)) -> io::Result<()>
         where W: Write,
     {
         if self.print_scores {
-            writeln!(writer, "{}\t{:.4}", pred.0, pred.1.unwrap())
+            writeln!(writer, "{}\t{:.4}", pred.0, pred.1)
         } else {
             writeln!(writer, "{}", pred.0)
         }
