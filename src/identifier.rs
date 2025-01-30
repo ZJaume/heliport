@@ -125,10 +125,17 @@ impl Identifier {
                 );
             }
         }
-        for _ in 0..k {
+        // Extract the topk from the tree
+        'outer: for _ in 0..k {
             if let Some((score, langs)) = self.heli_score.pop_first() {
                 for lang in langs {
                     winners.push((lang, Some(score.into_inner())));
+                    // There can be ties, indeed all langs that haven't been scored will be 7.0
+                    // and a heli_score.pop will return more than one
+                    // so we stop filling the array if k elements have been added
+                    if winners.len() >= k {
+                        break 'outer;
+                    }
                 }
             }
         }
@@ -320,7 +327,7 @@ impl Identifier {
     /// Return the list of top k most probable languages and their scores.
     /// If there are no alphabetical characters or language can not be determined
     /// it will return unk.
-    pub fn identify_top_k(&mut self, text: &str, k: usize) -> Vec<(Lang, Option<f32>)> {
+    pub fn identify_topk(&mut self, text: &str, k: usize) -> Vec<(Lang, Option<f32>)> {
         if self.score_langs(text) {
             self.rank_langs(k)
         } else {
