@@ -59,10 +59,20 @@ impl Identifier {
             ignore_confidence: ignore_confidence,
         }
     }
+    /// Disable use of confidence thresholds
+    pub fn disable_confidence(&mut self) {
+        self.ignore_confidence = true;
+    }
+
+    /// Disable use of confidence thresholds
+    pub fn without_confidence(&mut self) -> &mut Self {
+        self.ignore_confidence = true;
+        self
+    }
 
     /// Enable use of confidence thresholds
-    pub fn disable_confidence(&mut self) -> &mut Self {
-        self.ignore_confidence = true;
+    pub fn with_confidence(&mut self) -> &mut Self {
+        self.ignore_confidence = false;
         self
     }
 
@@ -436,4 +446,18 @@ mod tests {
                 "expected  = {:?}\npredict = {:?}", pred, expected);
         }
     }
+
+    #[test_log::test]
+    fn test_confidence() {
+        pyo3::prepare_freethreaded_python();
+        let identifier = Identifier::load(
+            &python::module_path().expect("Python module needs to be installed"),
+            None,
+        ).expect("Could not load model, please run 'heliport bianrize' if you haven't")
+            .disable_confidence();
+
+        let pred = identifier.identify("hello");
+        assert!(pred.0 == Lang::sah);
+    }
+
 }
