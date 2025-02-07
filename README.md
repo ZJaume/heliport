@@ -86,6 +86,12 @@ Options:
 'cat'
 ```
 
+For further information of the avaliable functions and parameters, please take a look at the module docs:
+```python
+>>> import heliport
+>>> help(heliport)
+```
+
 ### Rust crate
 ```rust
 use std::path::PathBuf;
