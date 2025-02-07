@@ -23,7 +23,6 @@ pub fn module_path() -> PyResult<PathBuf> {
 }
 
 /// Bindings to Python
-/// //TODO support parallel identification
 /// //TODO support loading relevant languages from text
 #[pymethods]
 impl Identifier {
@@ -42,6 +41,20 @@ impl Identifier {
     #[pyo3(name = "identify")]
     fn py_identify(&mut self, text: &str) -> String {
         self.identify(text).0.to_string()
+    }
+
+    /// Identify the languages of a list of strings in multiple parallel threads.
+    /// The amount of threads can be controlled with RAYON_NUM_THREADS environment variable.
+    /// Note that the variable has to be set prior to the first time this function
+    /// is called
+    #[pyo3(name = "par_identify")]
+    fn py_par_identify(&mut self, texts: Vec<String>) -> Vec<(String, f32)> {
+        let preds = self.par_identify(texts);
+        let mut preds_out = Vec::with_capacity(preds.len());
+        for pred in preds {
+            preds_out.push((pred.0.to_string(), pred.1));
+        }
+        preds_out
     }
 
     /// Identify the top-k most probable languages of a string and return the prediction scores.
