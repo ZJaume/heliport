@@ -57,16 +57,16 @@ impl Identifier {
         preds_out
     }
 
-    /// Identify the top-k most probable languages of a string and return the prediction scores.
-    /// This score is the confidence score (difference with the 2nd best)
-    /// or the raw score if ignore_confidence is enabled.
+    /// Identify the language of a string and return the raw prediction score.
     #[pyo3(name = "identify_with_score")]
     fn py_identify_with_score(&mut self, text: &str) -> (String, f32) {
         let pred = self.identify(text);
         (pred.0.to_string(), pred.1)
     }
 
-    /// Identify the language of a string and return the raw prediction score.
+    /// Identify the top-k most probable languages of a string and return the prediction scores.
+    /// This score is the confidence score (difference with the 2nd best)
+    /// or the raw score if ignore_confidence is enabled.
     #[pyo3(name = "identify_topk_with_score")]
     fn py_identify_topk_with_score(&mut self, text: &str, k: usize) -> Vec<(String, f32)> {
         let preds = self.identify_topk(text, k);
