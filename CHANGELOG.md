@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.9.0
+### Added
+- More Python identifier functions: `identify_with_score`, `identify_topk_with_score`, `par_identify`, `par_identify_with_score`.
+- Batched and multithreaded Python prediction.
+
+### Changed
+- Rust identifier functions won't return `Option` anymore, as there was no case where `None` was used.
+- Included `Cargo.lock`.
+- Update Github Actions build container to Python 3.12.
+- Update Github Actions to MacOS 13.
+- Update to Maturin 1.8.
+
+### Fixed
+- Small documentation issues.
+
 ## v0.8.1
 ### Fixed
 - `sdist` project layout without `heliport.data`
