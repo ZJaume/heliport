@@ -43,28 +43,16 @@ impl Identifier {
         self.identify(text).0.to_string()
     }
 
-    /// Identify the languages of a list of strings in multiple parallel threads.
-    /// The amount of threads can be controlled with RAYON_NUM_THREADS environment variable.
-    /// Note that the variable has to be set prior to the first time this function
-    /// is called
-    #[pyo3(name = "par_identify")]
-    fn py_par_identify(&mut self, texts: Vec<String>) -> Vec<(String, f32)> {
-        let preds = self.par_identify(texts);
-        let mut preds_out = Vec::with_capacity(preds.len());
-        for pred in preds {
-            preds_out.push((pred.0.to_string(), pred.1));
-        }
-        preds_out
-    }
-
-    /// Identify the language of a string and return the raw prediction score.
+    /// Identify the language of a string and return the language and score.
+    /// This score is the confidence score (difference with the 2nd best)
+    /// or the raw score if ignore_confidence is enabled.
     #[pyo3(name = "identify_with_score")]
     fn py_identify_with_score(&mut self, text: &str) -> (String, f32) {
         let pred = self.identify(text);
         (pred.0.to_string(), pred.1)
     }
 
-    /// Identify the top-k most probable languages of a string and return the prediction scores.
+    /// Identify the top-k most probable languages of a string and return the languages and scores.
     /// This score is the confidence score (difference with the 2nd best)
     /// or the raw score if ignore_confidence is enabled.
     #[pyo3(name = "identify_topk_with_score")]
@@ -75,6 +63,30 @@ impl Identifier {
             out.push((pred.to_string(), conf));
         }
         out
+    }
+
+    /// Parallelized version of `identify` function for a list of strings.
+    /// To change the number of threads set `RAYON_NUM_THREADS` environment variable.
+    #[pyo3(name = "par_identify")]
+    fn py_par_identify(&mut self, texts: Vec<String>) -> Vec<String> {
+        let preds = self.par_identify(texts);
+        let mut preds_out = Vec::with_capacity(preds.len());
+        for pred in preds {
+            preds_out.push(pred.0.to_string());
+        }
+        preds_out
+    }
+
+    /// Parallelized version of `identify_with_score` function for a list of strings.
+    /// To change the number of threads set `RAYON_NUM_THREADS` environment variable.
+    #[pyo3(name = "par_identify_with_score")]
+    fn py_par_identify_with_score(&mut self, texts: Vec<String>) -> Vec<(String, f32)> {
+        let preds = self.par_identify(texts);
+        let mut preds_out = Vec::with_capacity(preds.len());
+        for pred in preds {
+            preds_out.push((pred.0.to_string(), pred.1));
+        }
+        preds_out
     }
 }
 
