@@ -22,6 +22,16 @@ pub fn module_path() -> PyResult<PathBuf> {
     })
 }
 
+#[cfg(feature = "cli")]
+#[pyfunction]
+#[pyo3(name = "cli_run")]
+pub fn py_cli_run() -> PyResult<()> {
+    // skip the first argument that is the path to the Python entry point
+    let os_args = env::args_os().skip(1);
+    cli_run(os_args)?;
+    Ok(())
+}
+
 /// Bindings to Python
 /// //TODO support loading relevant languages from text
 #[pymethods]
@@ -98,7 +108,7 @@ impl Identifier {
 #[pymodule]
 fn heliport(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     #[cfg(feature = "cli")]
-    m.add_wrapped(wrap_pyfunction!(cli_run))?;
+    m.add_wrapped(wrap_pyfunction!(py_cli_run))?;
     m.add_class::<Identifier>()?;
     // m.add_class::<PyLang>()?;
 

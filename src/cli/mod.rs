@@ -4,10 +4,11 @@ mod download;
 mod binarize;
 mod create_models;
 
+use anyhow::Result;
 use clap::{Subcommand, Parser};
 use log::{debug};
-use pyo3::prelude::*;
 use env_logger::Env;
+use std::ffi::OsString;
 
 use crate::python::module_path;
 #[cfg(feature = "download")]
@@ -40,11 +41,11 @@ enum Commands {
 }
 
 
-
-#[pyfunction]
-pub fn cli_run() -> PyResult<()> {
-    // parse the cli arguments, skip the first one that is the path to the Python entry point
-    let os_args = std::env::args_os().skip(1);
+pub fn cli_run<I, T>(os_args: I) -> Result<()>
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<OsString> + Clone,
+{
     let args = Cli::parse_from(os_args);
     debug!("Module path found at: {}", module_path().expect("Could not found module path").display());
     if !args.quiet {

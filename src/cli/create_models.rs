@@ -2,10 +2,9 @@ use std::path::{PathBuf};
 use std::process::exit;
 use std::time::Instant;
 
-use anyhow::Context;
+use anyhow::{Context, Result};
 use clap::Args;
 use log::{info, error};
-use pyo3::prelude::*;
 use rayon::prelude::*;
 
 use crate::utils::Abort;
@@ -22,7 +21,7 @@ pub struct CreateModelCmd {
 }
 
 impl CreateModelCmd {
-    pub fn cli(self) -> PyResult<()> {
+    pub fn cli(self) -> Result<()> {
         info!("Starting");
         let now = Instant::now();
 

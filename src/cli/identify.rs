@@ -8,7 +8,6 @@ use anyhow::{Context, Result};
 use clap::Args;
 use itertools::Itertools;
 use log::{info, debug};
-use pyo3::prelude::*;
 
 use heliport_model::Lang;
 use crate::identifier::Identifier;
@@ -31,7 +30,7 @@ pub struct IdentifyCmd {
 
     #[arg(short = 'c', long, help="Ignore confidence thresholds. Predictions under the thresholds will not be labeled as 'und'")]
     ignore_confidence: bool,
-    #[arg(short = 's', long, help="Print confidence score (higher is better) or raw score (higher is better) in case '-c' is provided")]
+    #[arg(short = 's', long, help="Print confidence score (higher is better) or raw score (lower is better) in case '-c' is provided")]
     print_scores: bool,
 
     #[arg(help="Input file, default: stdin", )]
@@ -71,7 +70,7 @@ fn parse_langs(langs_text: &Vec<String>) -> Result<Vec<Lang>> {
 }
 
 impl IdentifyCmd {
-    pub fn cli(self) -> PyResult<()> {
+    pub fn cli(self) -> Result<()> {
         info!("Starting");
         let now = Instant::now();
 

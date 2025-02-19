@@ -1,9 +1,9 @@
 use std::path::{PathBuf};
 use std::process::exit;
 
+use anyhow::Result;
 use clap::Args;
 use log::{error, warn};
-use pyo3::prelude::*;
 
 use heliport_model::{binarize, OrderNgram};
 use crate::utils::Abort;
@@ -20,7 +20,7 @@ pub struct BinarizeCmd {
 }
 
 impl BinarizeCmd {
-    pub fn cli(self) -> PyResult<()> {
+    pub fn cli(self) -> Result<()> {
         let model_path = self.input_dir.unwrap_or(PathBuf::from("./LanguageModels"));
         let save_path = self.output_dir.unwrap_or(module_path().unwrap());
 

@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::env;
 
+use anyhow::Result;
 use clap::Args;
 use pyo3::prelude::*;
 use log::info;
@@ -16,7 +17,7 @@ pub struct DownloadCmd {
 }
 
 impl DownloadCmd {
-    pub fn cli(self) -> PyResult<()> {
+    pub fn cli(self) -> Result<()> {
         let download_path = self.path.unwrap_or(module_path().unwrap());
 
         let url = format!(
