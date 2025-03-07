@@ -25,7 +25,19 @@ fn main() -> Result<()> {
         "cargo:rerun-if-changed={}",
         model_path.display()
     );
-    println!("cargo:rerun-if-changed=build.rs");
+    println!(concat!(
+        "cargo:rerun-if-changed=",
+        env!("CARGO_MANIFEST_DIR"),
+        "/build.rs")
+    );
+    // Re-run build script if heliort-model has been recompiled
+    // I guess setting the path to lib.rs would be enough, as its build artifact would change 
+    // if any of the source files have been recompiled
+    println!(concat!(
+        "cargo:rerun-if-changed=",
+        env!("CARGO_MANIFEST_DIR"),
+        "/heliport-model/src/lib.rs")
+    );
 
     binarize(&save_path, &model_path)
 }
