@@ -55,27 +55,22 @@ Arguments:
   [OUTPUT_FILE]  Output file, default: stdout
 
 Options:
-  -j, --threads <THREADS>
-          Number of parallel threads to use.
-          0 means no multi-threading
-          1 means running the identification in a separated thread
-          >1 run multithreading [default: 0]
-  -b, --batch-size <BATCH_SIZE>
-          Number of text segments to pre-load for parallel processing [default: 100000]
-  -c, --ignore-confidence
-          Ignore confidence thresholds. Predictions under the thresholds will not be
-          labeled as 'und'
-  -s, --print-scores
-          Print confidence score (higher is better) or raw score (higher is better) in case
-          '-c' is provided
-  -m, --model-dir <MODEL_DIR>
-          Model directory containing binarized model or plain text model. Default is Python
-          module path or './LanguageModels' if relevant languages are requested
-  -l, --relevant-langs <RELEVANT_LANGS>
-          Load only relevant languages. Specify a comma-separated list of language codes.
-          Needs plain text model directory
-  -h, --help
-          Print help
+  -j, --threads <THREADS>                Number of parallel threads to use.
+                                         0 means no multi-threading
+                                         1 means running the identification in a separated thread
+                                         >1 run multithreading [default: 0]
+  -b, --batch-size <BATCH_SIZE>          Number of text segments to pre-load for parallel processing [default:
+                                         100000]
+  -c, --ignore-confidence                Ignore confidence thresholds. Predictions under the thresholds will
+                                         not be labeled as 'und'
+  -s, --print-scores                     Print confidence score (higher is better) or raw score (lower is
+                                         better) in case '-c' is provided
+  -m, --model-dir <MODEL_DIR>            Model directory containing binarized model or plain text model.
+                                         Default is Python module path or './LanguageModels' if relevant
+                                         languages are requested
+  -l, --relevant-langs <RELEVANT_LANGS>  Load only relevant languages. Specify a comma-separated list of
+                                         language codes. Needs plain text model directory
+  -h, --help                             Print help
 ```
 
 ### Python package
