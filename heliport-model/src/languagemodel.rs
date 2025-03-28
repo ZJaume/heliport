@@ -208,6 +208,29 @@ pub struct Model {
 impl Model {
     pub const CONFIDENCE_FILE: &'static str = "confidenceThresholds";
 
+    fn load_confidence(conf_file_path: &Path) -> Result<LangScores> {
+        // Load confidence thresholds
+        let mut confidence = LangScores::new();
+        let confidence_file = fs::read_to_string(conf_file_path)
+            .with_context(|| "Could not open confidenceThreshold file")?;
+        for (i, line) in confidence_file.trim_end().split('\n').enumerate() {
+            let parts: Vec<&str> = line.split('\t').collect();
+            // Check that the number of fields are correct and the language exists
+            if parts.len() != 2 {
+                bail!("Could not parse confidence files, expected fields 2, obtained {} in line {i}", parts.len());
+            }
+            let lang = Lang::from_str(parts[0])
+                .with_context(|| "Loading confidence file, lang '{parts[0]}' does not exist")?;
+            let prob = f32::from_str(parts[1])
+                .with_context(|| "Loading confidence file: could not parse float '{parts[1]}'")?;
+
+            confidence.insert(lang, prob);
+        }
+        confidence.insert(Lang::und, 0.0);
+
+        Ok(confidence)
+    }
+
     pub fn load(modelpath: &Path, from_text: bool, langs: Option<Vec<Lang>>) -> Result<Self> {
         debug!("Loading model from '{}", modelpath.display());
         // Run a separated thread to load each model
@@ -246,25 +269,7 @@ impl Model {
                 }));
             }
         }
-
-        // Load confidence thresholds
-        let mut confidence = LangScores::new();
-        let confidence_file = fs::read_to_string(modelpath.join(Self::CONFIDENCE_FILE))
-            .with_context(|| "Could not open confidenceThreshold file")?;
-        for (i, line) in confidence_file.trim_end().split('\n').enumerate() {
-            let parts: Vec<&str> = line.split('\t').collect();
-            // Check that the number of fields are correct and the language exists
-            if parts.len() != 2 {
-                bail!("Could not parse confidence files, expected fields 2, obtained {} in line {i}", parts.len());
-            }
-            let lang = Lang::from_str(parts[0])
-                .with_context(|| "Loading confidence file, lang '{parts[0]}' does not exist")?;
-            let prob = f32::from_str(parts[1])
-                .with_context(|| "Loading confidence file: could not parse float '{parts[1]}'")?;
-
-            confidence.insert(lang, prob);
-        }
-        confidence.insert(Lang::und, 0.0);
+        let confidence_scores = Self::load_confidence(&modelpath.join(Self::CONFIDENCE_FILE))?;
 
         Ok(Self {
             // remove first position because after removal, the vec is reindexed
@@ -277,7 +282,7 @@ impl Model {
                 handles.remove(0).join().unwrap()?,
                 handles.remove(0).join().unwrap()?,
             ],
-            confidence: confidence,
+            confidence: confidence_scores,
         })
     }
 }
