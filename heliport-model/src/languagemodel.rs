@@ -17,7 +17,7 @@ use strum_macros::EnumIter;
 use wyhash2::WyHash;
 type MyHasher = BuildHasherDefault<WyHash>;
 
-use crate::lang::{Lang, LangScores};
+use crate::lang::{Lang, LangScores, LangBitmap};
 
 #[derive(
     bitcode::Encode, bitcode::Decode, EnumIter, Display, EnumCount, Debug, PartialEq, Clone, Copy,
@@ -208,11 +208,13 @@ pub struct Model {
 impl Model {
     pub const CONFIDENCE_FILE: &'static str = "confidenceThresholds";
 
-    fn load_confidence(conf_file_path: &Path) -> Result<LangScores> {
-        // Load confidence thresholds
+    // Load confidence thresholds
+    pub fn load_confidence(conf_file_path: &Path) -> Result<LangScores> {
         let mut confidence = LangScores::new();
         let confidence_file = fs::read_to_string(conf_file_path)
             .with_context(|| "Could not open confidenceThreshold file")?;
+        let mut loaded_langs = LangBitmap::new();
+
         for (i, line) in confidence_file.trim_end().split('\n').enumerate() {
             let parts: Vec<&str> = line.split('\t').collect();
             // Check that the number of fields are correct and the language exists
@@ -224,9 +226,22 @@ impl Model {
             let prob = f32::from_str(parts[1])
                 .with_context(|| "Loading confidence file: could not parse float '{parts[1]}'")?;
 
+            loaded_langs.set(&lang, true);
             confidence.insert(lang, prob);
         }
         confidence.insert(Lang::und, 0.0);
+
+        // Check all languages after collapsing have thresholds
+        for lang in Lang::iter() {
+            let lang_col = lang.collapse();
+            if lang_col == Lang::und {
+                continue;
+            }
+            if !loaded_langs.get(&lang_col) {
+                bail!("Language '{}' confidence threshold not found '{}' file", lang_col, Self::CONFIDENCE_FILE);
+            }
+        }
+        debug!("{:?}", loaded_langs);
 
         Ok(confidence)
     }
@@ -319,9 +334,13 @@ pub fn binarize(save_path: &Path, model_path: &Path) -> Result<()> {
     }
 
     info!("Copying confidence thresholds file");
+    let conf_file_in = model_path.join(Model::CONFIDENCE_FILE);
+    let conf_file_out = save_path.join(Model::CONFIDENCE_FILE);
+    // Check conf file is ok by loading it
+    let _ = Model::load_confidence(&conf_file_in)?;
     fs::copy(
-        model_path.join(Model::CONFIDENCE_FILE),
-        save_path.join(Model::CONFIDENCE_FILE),
+        conf_file_in,
+        conf_file_out,
     )?;
 
     info!("Saved models at '{}'", save_path.display());
