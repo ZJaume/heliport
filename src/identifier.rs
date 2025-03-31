@@ -450,11 +450,11 @@ mod tests {
     #[test_log::test]
     fn test_confidence() {
         pyo3::prepare_freethreaded_python();
-        let identifier = Identifier::load(
+        let mut identifier = Identifier::load(
             &python::module_path().expect("Python module needs to be installed"),
             None,
-        ).expect("Could not load model, please run 'heliport bianrize' if you haven't")
-            .disable_confidence();
+        ).expect("Could not load model, please run 'heliport bianrize' if you haven't");
+        identifier.disable_confidence();
 
         let pred = identifier.identify("hello");
         assert!(pred.0 == Lang::sah);
