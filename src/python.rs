@@ -91,33 +91,45 @@ fn get_model_instance() -> Result<Arc<Model>, LoadModelError> {
 #[pymethods]
 impl Identifier {
     #[new]
-    #[pyo3(signature = (ignore_confidence = false))]
-    fn py_new(ignore_confidence: bool) -> PyResult<Self> {
-        let mut identifier = Identifier::new(get_model_instance()?, false);
-        if ignore_confidence {
-            identifier.disable_confidence();
-        }
+    #[pyo3()]
+    fn py_new() -> PyResult<Self> {
+        let identifier = Identifier::new(get_model_instance()?);
         Ok(identifier)
     }
 
-    /// Identify the language of a string
+    /// Identify the language of a string.
+    ///
+    /// If confidence threshold is enabled (default), all predictions below
+    /// the threshold will be labeled as 'und'.
     #[pyo3(name = "identify")]
-    fn py_identify(&mut self, text: &str) -> String {
-        self.identify(text).0.to_string()
+    fn py_identify(&mut self, text: &str, ignore_confidence: bool) -> String {
+        self.identify(text, ignore_confidence).0.to_string()
     }
 
-    /// Identify the language of a string and return the language and score.
-    /// This score is the confidence score (difference with the 2nd best)
-    /// or the raw score if ignore_confidence is enabled.
+    /// Identify the language of a string and return the prediction score.
+    ///
+    /// When confidence threshold is enabled (default), all predictions below
+    /// the threshold will be labeled as 'und'. The returned score is the confidence
+    /// value (higher is better) if the threshold is enabled, and the 
+    /// raw score if the threshold is disabled.
     #[pyo3(name = "identify_with_score")]
-    fn py_identify_with_score(&mut self, text: &str) -> (String, f32) {
-        let pred = self.identify(text);
+    fn py_identify_with_score(&mut self, text: &str, ignore_confidence: bool) -> (String, f32) {
+        let pred = self.identify(text, ignore_confidence);
         (pred.0.to_string(), pred.1)
     }
 
-    /// Identify the top-k most probable languages of a string and return the languages and scores.
-    /// This score is the confidence score (difference with the 2nd best)
-    /// or the raw score if ignore_confidence is enabled.
+    /// Identify the top-k languages of a string.
+    #[pyo3(name = "identify_topk")]
+    fn py_identify_topk(&mut self, text: &str, k: usize) -> Vec<String> {
+        let preds = self.identify_topk(text, k);
+        let mut out = Vec::<_>::with_capacity(preds.len());
+        for (pred, _) in preds {
+            out.push(pred.to_string());
+        }
+        out
+    }
+
+    /// Identify the top-k languages of a string and return each language raw score.
     #[pyo3(name = "identify_topk_with_score")]
     fn py_identify_topk_with_score(&mut self, text: &str, k: usize) -> Vec<(String, f32)> {
         let preds = self.identify_topk(text, k);
@@ -128,11 +140,11 @@ impl Identifier {
         out
     }
 
-    /// Parallelized version of `identify` function for a list of strings.
-    /// To change the number of threads set `RAYON_NUM_THREADS` environment variable.
+    /// Parallelized version of `identify`, which takes a batch of strings
+    /// and runs the identification in parallel.
     #[pyo3(name = "par_identify")]
-    fn py_par_identify(&mut self, texts: Vec<String>) -> Vec<String> {
-        let preds = self.par_identify(texts);
+    fn py_par_identify(&mut self, texts: Vec<String>, ignore_confidence: bool) -> Vec<String> {
+        let preds = self.par_identify(texts, ignore_confidence);
         let mut preds_out = Vec::with_capacity(preds.len());
         for pred in preds {
             preds_out.push(pred.0.to_string());
@@ -140,11 +152,11 @@ impl Identifier {
         preds_out
     }
 
-    /// Parallelized version of `identify_with_score` function for a list of strings.
-    /// To change the number of threads set `RAYON_NUM_THREADS` environment variable.
+    /// Parallelized version of `identify_score`, which takes a batch of strings
+    /// and runs the identification in parallel.
     #[pyo3(name = "par_identify_with_score")]
-    fn py_par_identify_with_score(&mut self, texts: Vec<String>) -> Vec<(String, f32)> {
-        let preds = self.par_identify(texts);
+    fn py_par_identify_with_score(&mut self, texts: Vec<String>, ignore_confidence: bool) -> Vec<(String, f32)> {
+        let preds = self.par_identify(texts, ignore_confidence);
         let mut preds_out = Vec::with_capacity(preds.len());
         for pred in preds {
             preds_out.push((pred.0.to_string(), pred.1));

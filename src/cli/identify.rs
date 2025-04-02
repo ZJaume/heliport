@@ -112,11 +112,10 @@ impl IdentifyCmd {
 
         info!("Loading model");
         // Load identifier
-        let mut identifier = Identifier::load(&model_dir, relevant_langs)
+        let identifier = Identifier::load(&model_dir, relevant_langs)
             .or_abort(1);
         if self.ignore_confidence {
             info!("Disabled confidence thresholds");
-            identifier.disable_confidence();
         }
 
         // do not run on separated threads if multithreading is not requested
@@ -159,7 +158,7 @@ impl IdentifyCmd {
                     line.or_abort(1)
                 })
                 .collect();
-            for pred in identifier.par_identify(batch) {
+            for pred in identifier.par_identify(batch, self.ignore_confidence) {
                 self.print_result(&mut writer, &pred).or_abort(1);
             }
         }
@@ -174,7 +173,7 @@ impl IdentifyCmd {
         // Process line by line
         for line_res in reader.lines() {
             let line = line_res?;
-            let pred = identifier.identify(&line);
+            let pred = identifier.identify(&line, self.ignore_confidence);
             self.print_result(&mut writer, &pred)?;
         }
         Ok(())

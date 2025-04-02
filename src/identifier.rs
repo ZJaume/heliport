@@ -24,17 +24,13 @@ pub struct Identifier {
     lang_points: LangScores,
     word_scores: LangScores,
     heli_score: BTreeMap<OrderedFloat<f32>, Vec<Lang>>,
-    pub ignore_confidence: bool,
 }
 
 /// A clone of Identifier creates new instances for all the members
 /// except the model, which is a pointer to avoid copying it.
 impl Clone for Identifier {
     fn clone(&self) -> Self {
-        Self::new(
-            self.model.clone(),
-            self.ignore_confidence,
-        )
+        Self::new(self.model.clone())
     }
 }
 
@@ -43,41 +39,21 @@ impl Identifier {
     const MAX_NGRAM : usize = 6;
 
     pub fn load(modelpath: &Path, langs: Option<Vec<Lang>>) -> Result<Self> {
-        Ok(Self::new(
-                Arc::new(Model::load(modelpath, false, langs)?),
-                false,
-            ))
+        Ok(Self::new(Arc::new(Model::load(modelpath, false, langs)?)))
     }
 
-    pub fn new(model: Arc<Model>, ignore_confidence: bool) -> Self {
+    pub fn new(model: Arc<Model>) -> Self {
         Self {
             model: model,
             lang_scored: LangBitmap::new(),
             lang_points: LangScores::new(),
             word_scores: LangScores::new(),
             heli_score: BTreeMap::new(),
-            ignore_confidence: ignore_confidence,
         }
-    }
-    /// Disable use of confidence thresholds
-    pub fn disable_confidence(&mut self) {
-        self.ignore_confidence = true;
-    }
-
-    /// Disable use of confidence thresholds
-    pub fn without_confidence(&mut self) -> &mut Self {
-        self.ignore_confidence = true;
-        self
-    }
-
-    /// Enable use of confidence thresholds
-    pub fn with_confidence(&mut self) -> &mut Self {
-        self.ignore_confidence = false;
-        self
     }
 
     /// Get the most probable language according to the current language scores
-    fn pick_winner(&mut self) -> (Lang, f32) {
+    fn pick_winner(&mut self, ignore_confidence: bool) -> (Lang, f32) {
         // if only one lang is requested, just search for the minimum score (winner)
         let mut score = Self::PENALTY_VALUE + 1.0;
         let mut winner_lang = Lang::und;
@@ -96,7 +72,7 @@ impl Identifier {
         // Compute confidence value
         // confidence is absolute difference with the second scoring language
         // only collapsed macrolangs can be taken into account
-        if !self.ignore_confidence {
+        if !ignore_confidence {
             let mut second = Self::PENALTY_VALUE + 1.0;
             for lang in Lang::iter() {
                 let points = self.lang_points.get(lang);
@@ -324,9 +300,9 @@ impl Identifier {
     /// Returns the language and score of the highest scoring language.
     /// If there are no alphabetical characters or language can not be determined
     /// it will return unk.
-    pub fn identify(&mut self, text: &str) -> (Lang, f32) {
+    pub fn identify(&mut self, text: &str, ignore_confidence: bool) -> (Lang, f32) {
         if self.score_langs(text) {
-            self.pick_winner()
+            self.pick_winner(ignore_confidence)
         } else {
             (Lang::und, Self::PENALTY_VALUE)
         }
@@ -348,7 +324,7 @@ impl Identifier {
     /// Parallel version of [`Self::identify`]
     ///
     /// Takes an iterator of text instances and returns a [`Vec`] with the results
-    pub fn par_identify<I>(&self, texts: I) -> Vec<(Lang, f32)>
+    pub fn par_identify<I>(&self, texts: I, ignore_confidence: bool) -> Vec<(Lang, f32)>
         where I: IntoParallelIterator<Item = String>
     {
         // Each thread initializes with its own copy to the identifier object
@@ -366,7 +342,7 @@ impl Identifier {
                     if identifier.is_none() {
                         *identifier = Some(self.clone());
                     }
-                    identifier.as_mut().unwrap().identify(&text)
+                    identifier.as_mut().unwrap().identify(&text, ignore_confidence)
                 })
             })
             .collect()
@@ -425,7 +401,7 @@ mod tests {
         assert_eq!(pred.0, Lang::spa);
 
         for (text, expected) in INPUT_SENTS.iter().zip(EXPECTED_PREDS) {
-            let pred = identifier.identify(&text.to_string());
+            let pred = identifier.identify(&text.to_string(), false);
             assert_eq!(pred.0, expected.0);
         }
     }
@@ -439,7 +415,7 @@ mod tests {
         ).expect("Could not load model, please run 'heliport bianrize' if you haven't");
 
         for (text, expected) in INPUT_SENTS.iter().zip(EXPECTED_PREDS) {
-            let pred = identifier.identify(&text.to_string());
+            let pred = identifier.identify(&text.to_string(), false);
             let pred_score = format!("{:.4}", pred.1);
             let expected_score = format!("{:.4}", expected.1);
             assert!(pred_score == expected_score,
@@ -454,9 +430,8 @@ mod tests {
             &python::module_path().expect("Python module needs to be installed"),
             None,
         ).expect("Could not load model, please run 'heliport bianrize' if you haven't");
-        identifier.disable_confidence();
 
-        let pred = identifier.identify("hello");
+        let pred = identifier.identify("hello", true);
         assert!(pred.0 == Lang::sah);
     }
 
