@@ -1,11 +1,15 @@
 use std::path::PathBuf;
+use std::{error::Error, fmt};
+use std::sync::{LazyLock, Arc};
 use std::env;
 
 use pyo3::prelude::*;
+use pyo3::exceptions::PyOSError;
 
 #[cfg(feature = "cli")]
 use crate::cli::cli_run;
 use crate::identifier::Identifier;
+use heliport_model::Model;
 
 // Call python interpreter and obtain python path of our module
 pub fn module_path() -> PyResult<PathBuf> {
@@ -32,6 +36,56 @@ pub fn py_cli_run() -> PyResult<()> {
     Ok(())
 }
 
+// Custom Error type to handle different types of model loading errors
+#[derive(Debug, Clone)]
+enum LoadModelError {
+    ModulePath,
+    LoadModel(String),
+}
+
+impl Error for LoadModelError {}
+
+impl fmt::Display for LoadModelError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            LoadModelError::ModulePath => write!(f, "Could not load python module path"),
+            LoadModelError::LoadModel(msg) => write!(f, "{}", msg),
+        }
+    }
+}
+
+// Allow cast to python exception
+impl std::convert::From<LoadModelError> for PyErr {
+    fn from(err: LoadModelError) -> PyErr {
+        PyOSError::new_err(err.to_string())
+    }
+}
+
+/// Model as a Singleton
+/// this allows that multiple Identifier objects instances
+/// in python will share the same Model
+/// maybe this can evolve to something tha covers both Rust backend and Python API?
+fn get_model_instance() -> Result<Arc<Model>, LoadModelError> {
+    // the static variable is a result that cointains reference pointer to the model
+    // or the type of model loading error
+    // I couldn't make this work using anyhow error
+    static MODEL_GLOBAL : LazyLock<Result<Arc<Model>, LoadModelError>> = LazyLock::new(|| {
+        let Ok(modulepath) = module_path() else {
+            return Err(LoadModelError::ModulePath);
+        };
+        match Model::load(&modulepath, false, None) {
+            Ok(model) => Ok(Arc::new(model)),
+            Err(e) => Err(LoadModelError::LoadModel(String::from(format!("{}", e)))),
+        }
+    });
+    // each time an instance is requested, we unwrap the result and return a new result
+    // with a copy of the atomic reference
+    match *MODEL_GLOBAL {
+        Ok(ref model) => Ok(model.clone()),
+        Err(ref err) => Err(err.clone()),
+    }
+}
+
 /// Bindings to Python
 /// //TODO support loading relevant languages from text
 #[pymethods]
@@ -39,8 +93,7 @@ impl Identifier {
     #[new]
     #[pyo3(signature = (ignore_confidence = false))]
     fn py_new(ignore_confidence: bool) -> PyResult<Self> {
-        let modulepath = module_path().expect("Error loading python module path");
-        let mut identifier = Identifier::load(&modulepath, None)?;
+        let mut identifier = Identifier::new(get_model_instance()?, false);
         if ignore_confidence {
             identifier.disable_confidence();
         }
