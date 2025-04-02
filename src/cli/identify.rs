@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::Instant;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use clap::Args;
 use itertools::Itertools;
 use log::{info, debug};
@@ -12,6 +12,7 @@ use log::{info, debug};
 use heliport_model::Lang;
 use crate::identifier::Identifier;
 use crate::utils::Abort;
+#[cfg(feature = "python")]
 use crate::python::module_path;
 
 #[derive(Args, Clone, Debug)]
@@ -94,7 +95,11 @@ impl IdentifyCmd {
             if relevant_langs.is_some() {
                 model_dir = PathBuf::from("./LanguageModels");
             } else {
-                model_dir = module_path().unwrap();
+                #[cfg(feature = "python")] {
+                    model_dir = module_path().unwrap();
+                }
+                #[cfg(not(feature = "python"))]
+                bail!("Python feature is not enabled, therefore model path needs to be provided");
             }
         }
 

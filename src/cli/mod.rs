@@ -10,6 +10,7 @@ use log::{debug};
 use env_logger::Env;
 use std::ffi::OsString;
 
+#[cfg(feature = "python")]
 use crate::python::module_path;
 #[cfg(feature = "download")]
 use self::download::DownloadCmd;
@@ -47,7 +48,9 @@ pub fn cli_run<I, T>(os_args: I) -> Result<()>
         T: Into<OsString> + Clone,
 {
     let args = Cli::parse_from(os_args);
+    #[cfg(feature = "python")]
     debug!("Module path found at: {}", module_path().expect("Could not found module path").display());
+
     if !args.quiet {
         env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     } else {

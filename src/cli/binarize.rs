@@ -7,6 +7,7 @@ use log::{error, warn};
 
 use heliport_model::{binarize, OrderNgram};
 use crate::utils::Abort;
+#[cfg(feature = "python")]
 use crate::python::module_path;
 
 #[derive(Args, Clone)]
@@ -22,7 +23,11 @@ pub struct BinarizeCmd {
 impl BinarizeCmd {
     pub fn cli(self) -> Result<()> {
         let model_path = self.input_dir.unwrap_or(PathBuf::from("./LanguageModels"));
+
+        #[cfg(feature = "python")]
         let save_path = self.output_dir.unwrap_or(module_path().unwrap());
+        #[cfg(not(feature = "python"))]
+        let save_path = self.output_dir.expect("Python feature is disabled. Input and output dirs must be provided");
 
         // Fail and warn the use if there is already a model
         if !self.force &&

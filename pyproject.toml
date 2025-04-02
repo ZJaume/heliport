@@ -33,5 +33,5 @@ dynamic = ["version"]
 heliport = "heliport:cli_run"
 
 [tool.maturin]
-features = ["pyo3/extension-module"]
+features = ["python", "pyo3/extension-module"]
 data = "heliport.data"
