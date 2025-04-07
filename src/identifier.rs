@@ -98,9 +98,9 @@ impl Identifier {
     /// Build a ranking of the top k scoring languages,
     /// according to the current language scores
     fn rank_langs(&mut self, k: usize) -> Vec<(Lang, f32)> {
-        //TODO collapse macro languages
         self.heli_score.clear();
         let mut winners = Vec::with_capacity(k);
+        let mut collapsed_added = LangBitmap::new();
         for lang in Lang::iter() {
             let ord_score = OrderedFloat(self.lang_points.get(lang));
             if let Some(langs) = self.heli_score.get_mut(&ord_score) {
@@ -113,7 +113,15 @@ impl Identifier {
         'outer: for _ in 0..k {
             if let Some((score, langs)) = self.heli_score.pop_first() {
                 for lang in langs {
-                    winners.push((lang, score.into_inner()));
+                    // collapse macro languages
+                    // the first one in a macro that appears will be the highest score for the
+                    // macro. The rest are ignored
+                    let collapsed = lang.collapse();
+                    if collapsed_added.get(&collapsed) {
+                        continue;
+                    }
+                    collapsed_added.set(&collapsed, true);
+                    winners.push((collapsed, score.into_inner()));
                     // There can be ties, indeed all langs that haven't been scored will be 7.0
                     // and a heli_score.pop will return more than one
                     // so we stop filling the array if k elements have been added
