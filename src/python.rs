@@ -1,15 +1,17 @@
 use std::path::PathBuf;
 use std::{error::Error, fmt};
+use std::str::FromStr;
 use std::sync::{LazyLock, Arc};
 use std::env;
 
+use anyhow::{Context};
 use pyo3::prelude::*;
 use pyo3::exceptions::PyOSError;
 
 #[cfg(feature = "cli")]
 use crate::cli::cli_run;
 use crate::identifier::Identifier;
-use heliport_model::Model;
+use heliport_model::{Model, Lang};
 
 // Call python interpreter and obtain python path of our module
 pub fn module_path() -> PyResult<PathBuf> {
@@ -158,6 +160,13 @@ impl Identifier {
             preds_out.push((pred.0.to_string(), pred.1));
         }
         preds_out
+    }
+
+    /// Obtain confidence threshold for a language
+    #[pyo3(name = "get_confidence")]
+    fn py_get_confidence(&self, lang_str: &str) -> PyResult<f32> {
+        let lang = Lang::from_str(lang_str).context("Language code does not exist")?;
+        Ok(self.get_confidence(lang))
     }
 }
 

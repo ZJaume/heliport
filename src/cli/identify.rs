@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::Instant;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
 use clap::Args;
 use itertools::Itertools;
 use log::{info, debug};
@@ -98,8 +98,10 @@ impl IdentifyCmd {
                 #[cfg(feature = "python")] {
                     model_dir = module_path().unwrap();
                 }
-                #[cfg(not(feature = "python"))]
-                bail!("Python feature is not enabled, therefore model path needs to be provided");
+                #[cfg(not(feature = "python"))] {
+                    use anyhow::bail;
+                    bail!("Python feature is not enabled, therefore model path needs to be provided");
+                }
             }
         }
 

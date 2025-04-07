@@ -6,7 +6,6 @@ mod create_models;
 
 use anyhow::Result;
 use clap::{Subcommand, Parser};
-use log::{debug};
 use env_logger::Env;
 use std::ffi::OsString;
 
@@ -48,8 +47,10 @@ pub fn cli_run<I, T>(os_args: I) -> Result<()>
         T: Into<OsString> + Clone,
 {
     let args = Cli::parse_from(os_args);
-    #[cfg(feature = "python")]
-    debug!("Module path found at: {}", module_path().expect("Could not found module path").display());
+    #[cfg(feature = "python")] {
+        use log::debug;
+        debug!("Module path found at: {}", module_path().expect("Could not found module path").display());
+    }
 
     if !args.quiet {
         env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();

@@ -348,6 +348,10 @@ impl Identifier {
             .collect()
     }
 
+    /// Obtain confidence threshold for a language
+    pub fn get_confidence(&self, lang: Lang) -> f32 {
+        self.model.confidence.get(lang)
+    }
 }
 
 #[cfg(test)]
