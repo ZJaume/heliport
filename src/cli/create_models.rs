@@ -1,22 +1,27 @@
-use std::path::{PathBuf};
+use std::path::PathBuf;
 use std::process::exit;
 use std::time::Instant;
 
 use anyhow::{Context, Result};
 use clap::Args;
-use log::{info, error};
+use log::{error, info};
 use rayon::prelude::*;
 
-use crate::utils::Abort;
 use crate::trainer::count_all_ngrams;
+use crate::utils::Abort;
 
 #[derive(Args, Clone)]
 pub struct CreateModelCmd {
-    #[arg(help="Output directory to save the ngram frequency files")]
+    #[arg(help = "Output directory to save the ngram frequency files")]
     output_dir: PathBuf,
-    #[arg(help="Directory where input text files are located")]
+    #[arg(help = "Directory where input text files are located")]
     input_files: Vec<PathBuf>,
-    #[arg(short = 'k', long, default_value_t = 10000, help="Truncate at top-k most frequent n-grams")]
+    #[arg(
+        short = 'k',
+        long,
+        default_value_t = 10000,
+        help = "Truncate at top-k most frequent n-grams"
+    )]
     topk: usize,
 }
 
@@ -26,7 +31,10 @@ impl CreateModelCmd {
         let now = Instant::now();
 
         if !self.output_dir.exists() {
-            error!("Output directory '{}' does not exist, please create it", self.output_dir.display());
+            error!(
+                "Output directory '{}' does not exist, please create it",
+                self.output_dir.display()
+            );
             exit(1);
         }
 

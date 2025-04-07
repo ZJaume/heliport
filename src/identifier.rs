@@ -2,20 +2,19 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use ordered_float::OrderedFloat;
-use strum::{IntoEnumIterator, EnumCount};
-use shingles::AsShingles;
 use anyhow::Result;
-use log::{debug,warn};
+use log::{debug, warn};
+use ordered_float::OrderedFloat;
 use rayon::prelude::*;
+use shingles::AsShingles;
+use strum::{EnumCount, IntoEnumIterator};
 
 #[cfg(feature = "python")]
 use pyo3::pyclass;
 
-use heliport_model::Model;
-use heliport_model::{Lang, LangScores, LangBitmap};
 use crate::utils::{is_cjk_block, RE_NON_ALPHA};
-
+use heliport_model::Model;
+use heliport_model::{Lang, LangBitmap, LangScores};
 
 #[cfg_attr(feature = "python", pyclass)]
 pub struct Identifier {
@@ -35,8 +34,8 @@ impl Clone for Identifier {
 }
 
 impl Identifier {
-    const PENALTY_VALUE : f32 = 7.0;
-    const MAX_NGRAM : usize = 6;
+    const PENALTY_VALUE: f32 = 7.0;
+    const MAX_NGRAM: usize = 6;
 
     pub fn load(modelpath: &Path, langs: Option<Vec<Lang>>) -> Result<Self> {
         Ok(Self::new(Arc::new(Model::load(modelpath, false, langs)?)))
@@ -88,7 +87,9 @@ impl Identifier {
             if threshold > score {
                 winner_lang = Lang::und;
             }
-            debug!("Winner lang '{winner_lang}' with confidence '{score}' and threshold '{threshold}'");
+            debug!(
+                "Winner lang '{winner_lang}' with confidence '{score}' and threshold '{threshold}'"
+            );
         }
 
         (winner_lang, score)
@@ -105,10 +106,7 @@ impl Identifier {
             if let Some(langs) = self.heli_score.get_mut(&ord_score) {
                 langs.push(lang);
             } else {
-                self.heli_score.insert(
-                    ord_score,
-                    Vec::from([lang])
-                );
+                self.heli_score.insert(ord_score, Vec::from([lang]));
             }
         }
         // Extract the topk from the tree
@@ -152,7 +150,7 @@ impl Identifier {
                 // this is faster, because of easier autovectorization?
                 self.word_scores.add_index(
                     i,
-                    Self::PENALTY_VALUE * !self.lang_scored[i] as usize as f32
+                    Self::PENALTY_VALUE * !self.lang_scored[i] as usize as f32,
                 );
             }
             return true;
@@ -216,7 +214,6 @@ impl Identifier {
         // split_whitespace ignores them
         let mut words = mystery_text.split_whitespace().peekable();
 
-
         if words.peek().is_none() {
             return false;
         }
@@ -237,7 +234,7 @@ impl Identifier {
             if !word_scored {
                 debug!("Word has not been found");
                 let wordspace = format!(" {word} ");
-                for t in (1..Self::MAX_NGRAM+1).rev() {
+                for t in (1..Self::MAX_NGRAM + 1).rev() {
                     if word_scored {
                         break;
                     }
@@ -279,7 +276,7 @@ impl Identifier {
         if mystery_length == 0 {
             cjk_pct = 0.0;
         } else {
-            cjk_pct =  cjk_num_chars as f32 / mystery_length as f32;
+            cjk_pct = cjk_num_chars as f32 / mystery_length as f32;
         }
         debug!("CJK amount: {cjk_num_chars} ({cjk_pct:.2}%) mystery_text size: {mystery_length}");
         for lang in Lang::iter() {
@@ -325,7 +322,8 @@ impl Identifier {
     ///
     /// Takes an iterator of text instances and returns a [`Vec`] with the results
     pub fn par_identify<I>(&self, texts: I, ignore_confidence: bool) -> Vec<(Lang, f32)>
-        where I: IntoParallelIterator<Item = String>
+    where
+        I: IntoParallelIterator<Item = String>,
     {
         // Each thread initializes with its own copy to the identifier object
         thread_local! {
@@ -342,7 +340,10 @@ impl Identifier {
                     if identifier.is_none() {
                         *identifier = Some(self.clone());
                     }
-                    identifier.as_mut().unwrap().identify(&text, ignore_confidence)
+                    identifier
+                        .as_mut()
+                        .unwrap()
+                        .identify(&text, ignore_confidence)
                 })
             })
             .collect()
@@ -357,8 +358,8 @@ impl Identifier {
 #[cfg(test)]
 mod tests {
     use crate::identifier::Identifier;
-    use heliport_model::lang::Lang;
     use crate::python;
+    use heliport_model::lang::Lang;
     use pyo3;
 
     const INPUT_SENTS: [&str;13] = [
@@ -377,7 +378,7 @@ mod tests {
         "\u{0aae}\u{0a9c}\u{0abe}\u{0a95} \u{0aa4}\u{0ab0}\u{0ac0}\u{0a95}\u{0ac7} @K.",
     ];
     // Expected predictions from original HeLI
-    const EXPECTED_PREDS: [(Lang, f32);13] = [
+    const EXPECTED_PREDS: [(Lang, f32); 13] = [
         (Lang::cat, 1.5613),
         (Lang::spa, 0.2340),
         (Lang::fin, 1.8580),
@@ -399,7 +400,8 @@ mod tests {
         let mut identifier = Identifier::load(
             &python::module_path().expect("Python module needs to be installed"),
             None,
-        ).expect("Could not load model, please run 'heliport bianrize' if you haven't");
+        )
+        .expect("Could not load model, please run 'heliport bianrize' if you haven't");
 
         let pred = identifier.identify(&String::from("Hola, ¿qué tal?"));
         assert_eq!(pred.0, Lang::spa);
@@ -416,14 +418,19 @@ mod tests {
         let mut identifier = Identifier::load(
             &python::module_path().expect("Python module needs to be installed"),
             None,
-        ).expect("Could not load model, please run 'heliport bianrize' if you haven't");
+        )
+        .expect("Could not load model, please run 'heliport bianrize' if you haven't");
 
         for (text, expected) in INPUT_SENTS.iter().zip(EXPECTED_PREDS) {
             let pred = identifier.identify(&text.to_string(), false);
             let pred_score = format!("{:.4}", pred.1);
             let expected_score = format!("{:.4}", expected.1);
-            assert!(pred_score == expected_score,
-                "expected  = {:?}\npredict = {:?}", pred, expected);
+            assert!(
+                pred_score == expected_score,
+                "expected  = {:?}\npredict = {:?}",
+                pred,
+                expected
+            );
         }
     }
 
@@ -433,10 +440,10 @@ mod tests {
         let mut identifier = Identifier::load(
             &python::module_path().expect("Python module needs to be installed"),
             None,
-        ).expect("Could not load model, please run 'heliport bianrize' if you haven't");
+        )
+        .expect("Could not load model, please run 'heliport bianrize' if you haven't");
 
         let pred = identifier.identify("hello", true);
         assert!(pred.0 == Lang::sah);
     }
-
 }

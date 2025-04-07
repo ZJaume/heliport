@@ -1,5 +1,5 @@
-pub mod languagemodel;
 pub mod lang;
+pub mod languagemodel;
 
-pub use crate::languagemodel::{Model, ModelNgram, OrderNgram, binarize};
-pub use crate::lang::{Lang, LangScores, LangBitmap};
+pub use crate::lang::{Lang, LangBitmap, LangScores};
+pub use crate::languagemodel::{binarize, Model, ModelNgram, OrderNgram};

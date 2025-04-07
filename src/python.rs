@@ -1,17 +1,17 @@
-use std::path::PathBuf;
-use std::{error::Error, fmt};
-use std::str::FromStr;
-use std::sync::{LazyLock, Arc};
 use std::env;
+use std::path::PathBuf;
+use std::str::FromStr;
+use std::sync::{Arc, LazyLock};
+use std::{error::Error, fmt};
 
-use anyhow::{Context};
-use pyo3::prelude::*;
+use anyhow::Context;
 use pyo3::exceptions::PyOSError;
+use pyo3::prelude::*;
 
 #[cfg(feature = "cli")]
 use crate::cli::cli_run;
 use crate::identifier::Identifier;
-use heliport_model::{Model, Lang};
+use heliport_model::{Lang, Model};
 
 // Call python interpreter and obtain python path of our module
 pub fn module_path() -> PyResult<PathBuf> {
@@ -19,9 +19,7 @@ pub fn module_path() -> PyResult<PathBuf> {
     Python::with_gil(|py| {
         // Instead of hardcoding the module name, obtain it from the crate name at compile time
         let module = PyModule::import(py, env!("CARGO_PKG_NAME"))?;
-        let paths: Vec<String> = module
-            .getattr("__path__")?
-            .extract()?;
+        let paths: Vec<String> = module.getattr("__path__")?.extract()?;
         // __path__ attribute returns a list of paths, return first
         path.push(&paths[0]);
         Ok(path)
@@ -71,7 +69,7 @@ fn get_model_instance() -> Result<Arc<Model>, LoadModelError> {
     // the static variable is a result that cointains reference pointer to the model
     // or the type of model loading error
     // I couldn't make this work using anyhow error
-    static MODEL_GLOBAL : LazyLock<Result<Arc<Model>, LoadModelError>> = LazyLock::new(|| {
+    static MODEL_GLOBAL: LazyLock<Result<Arc<Model>, LoadModelError>> = LazyLock::new(|| {
         let Ok(modulepath) = module_path() else {
             return Err(LoadModelError::ModulePath);
         };
@@ -112,7 +110,7 @@ impl Identifier {
     ///
     /// When confidence threshold is enabled (default), all predictions below
     /// the threshold will be labeled as 'und'. The returned score is the confidence
-    /// value (higher is better) if the threshold is enabled, and the 
+    /// value (higher is better) if the threshold is enabled, and the
     /// raw score if the threshold is disabled.
     #[pyo3(name = "identify_with_score", signature = (text, ignore_confidence=false))]
     fn py_identify_with_score(&mut self, text: &str, ignore_confidence: bool) -> (String, f32) {
@@ -153,7 +151,11 @@ impl Identifier {
     /// Parallelized version of `identify_score`, which takes a batch of strings
     /// and runs the identification in parallel.
     #[pyo3(name = "par_identify_with_score", signature = (texts, ignore_confidence=false))]
-    fn py_par_identify_with_score(&mut self, texts: Vec<String>, ignore_confidence: bool) -> Vec<(String, f32)> {
+    fn py_par_identify_with_score(
+        &mut self,
+        texts: Vec<String>,
+        ignore_confidence: bool,
+    ) -> Vec<(String, f32)> {
         let preds = self.par_identify(texts, ignore_confidence);
         let mut preds_out = Vec::with_capacity(preds.len());
         for pred in preds {

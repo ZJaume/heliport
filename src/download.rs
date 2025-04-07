@@ -1,14 +1,14 @@
-use std::process::{exit, Command};
 use std::fs;
+use std::process::{exit, Command};
 
-use log::{info, warn, debug, error};
+use anyhow::{bail, Context, Result};
+use futures_util::StreamExt;
+use log::{debug, error, info, warn};
+use reqwest;
+use tempfile::NamedTempFile;
 use tokio::io::AsyncWriteExt;
 use tokio::runtime::Runtime;
 use tokio::signal::unix;
-use futures_util::StreamExt;
-use tempfile::NamedTempFile;
-use anyhow::{bail, Context, Result};
-use reqwest;
 
 // Run a listener for cancel signals, if received terminate
 // if a filename is provided, delete it
@@ -31,7 +31,7 @@ async fn run_cancel_handler(filename: Option<String>) {
             if let Some(f) = filename {
                 // panic if cannot be deleted?
                 debug!("Cleaning temp: {}", f);
-                if fs::remove_file(&f).is_err(){
+                if fs::remove_file(&f).is_err() {
                     warn!("Could not remove temporary file: {f}");
                 }
             }
@@ -74,7 +74,14 @@ async fn download_file_and_extract_async(url: &str, extractpath: &str) -> Result
     download_file_async(url, &temp_path).await?;
 
     let mut command = Command::new("/bin/tar");
-    command.args(["xvfm", temp_path, "-C", extractpath, "--strip-components", "1"]);
+    command.args([
+        "xvfm",
+        temp_path,
+        "-C",
+        extractpath,
+        "--strip-components",
+        "1",
+    ]);
     debug!("Running command {:?}", command.get_args());
     let comm_output = command.output()?;
     debug!("Command status: {:?}", comm_output.status);
@@ -83,8 +90,14 @@ async fn download_file_and_extract_async(url: &str, extractpath: &str) -> Result
         let stderr_out = String::from_utf8_lossy(&comm_output.stderr);
         bail!("Command failed during execution: {stderr_out}");
     }
-    debug!("Command stderr: {}", std::str::from_utf8(&comm_output.stderr)?);
-    debug!("Command stdout: {}", std::str::from_utf8(&comm_output.stdout)?);
+    debug!(
+        "Command stderr: {}",
+        std::str::from_utf8(&comm_output.stderr)?
+    );
+    debug!(
+        "Command stdout: {}",
+        std::str::from_utf8(&comm_output.stdout)?
+    );
     Ok(())
 }
 
@@ -93,5 +106,3 @@ pub fn download_file_and_extract(url: &str, extractpath: &str) -> Result<()> {
     let runtime = Runtime::new()?;
     runtime.block_on(download_file_and_extract_async(url, extractpath))
 }
-
-

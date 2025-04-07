@@ -7,9 +7,9 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::thread;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use bitcode;
-use log::{info, debug, warn};
+use log::{debug, info, warn};
 use rayon::prelude::*;
 use strum::{Display, EnumCount, IntoEnumIterator};
 use strum_macros::EnumIter;
@@ -17,7 +17,7 @@ use strum_macros::EnumIter;
 use wyhash2::WyHash;
 type MyHasher = BuildHasherDefault<WyHash>;
 
-use crate::lang::{Lang, LangScores, LangBitmap};
+use crate::lang::{Lang, LangBitmap, LangScores};
 
 #[derive(
     bitcode::Encode, bitcode::Decode, EnumIter, Display, EnumCount, Debug, PartialEq, Clone, Copy,
@@ -97,7 +97,9 @@ impl ModelNgram {
 
         // Load each type of language model
         for lang in Lang::iter() {
-            if lang == Lang::und { continue; }
+            if lang == Lang::und {
+                continue;
+            }
             let lang_repr = lang.to_string().to_lowercase();
             // Models may not have all the language codes supported by the library
             if !lang_list.contains(&lang_repr[..]) {
@@ -175,8 +177,8 @@ impl ModelNgram {
 
     // Create a new struct reading from a binary file
     pub fn from_bin(p: &Path) -> Result<Self> {
-        let mut file =
-            File::open(p).with_context(|| format!("Could not open model file '{}'", p.display()))?;
+        let mut file = File::open(p)
+            .with_context(|| format!("Could not open model file '{}'", p.display()))?;
         let mut content = Vec::new();
         let _ = file
             .read_to_end(&mut content)
@@ -219,7 +221,10 @@ impl Model {
             let parts: Vec<&str> = line.split('\t').collect();
             // Check that the number of fields are correct and the language exists
             if parts.len() != 2 {
-                bail!("Could not parse confidence files, expected fields 2, obtained {} in line {i}", parts.len());
+                bail!(
+                    "Could not parse confidence files, expected fields 2, obtained {} in line {i}",
+                    parts.len()
+                );
             }
             let lang = Lang::from_str(parts[0])
                 .with_context(|| "Loading confidence file, lang '{parts[0]}' does not exist")?;
@@ -238,7 +243,11 @@ impl Model {
                 continue;
             }
             if !loaded_langs.get(&lang_col) {
-                bail!("Language '{}' confidence threshold not found '{}' file", lang_col, Self::CONFIDENCE_FILE);
+                bail!(
+                    "Language '{}' confidence threshold not found '{}' file",
+                    lang_col,
+                    Self::CONFIDENCE_FILE
+                );
             }
         }
         debug!("{:?}", loaded_langs);
@@ -258,10 +267,7 @@ impl Model {
                 let modelpath_copy = PathBuf::from(modelpath);
                 let langs_copy = langs.clone();
                 handles.push(thread::spawn(move || {
-                    let model = ModelNgram::from_text(
-                        &modelpath_copy,
-                        model_type,
-                        langs_copy)?;
+                    let model = ModelNgram::from_text(&modelpath_copy, model_type, langs_copy)?;
                     Ok(model)
                 }));
             } else {
@@ -313,7 +319,7 @@ impl Index<usize> for Model {
 
 /// Binarize models and save in a path
 pub fn binarize(save_path: &Path, model_path: &Path) -> Result<()> {
-    let orders: Vec<_ > = OrderNgram::iter().collect();
+    let orders: Vec<_> = OrderNgram::iter().collect();
 
     let results: Vec<Result<_>> = orders
         .par_iter()
@@ -326,7 +332,8 @@ pub fn binarize(save_path: &Path, model_path: &Path) -> Result<()> {
             let filename = save_path.join(format!("{type_repr}.bin"));
             info!("{type_repr}: saving binarized model with {size} entries");
             model.save(Path::new(&filename))
-        }).collect();
+        })
+        .collect();
 
     // If there is one error, propagate
     for r in results {
@@ -338,10 +345,7 @@ pub fn binarize(save_path: &Path, model_path: &Path) -> Result<()> {
     let conf_file_out = save_path.join(Model::CONFIDENCE_FILE);
     // Check conf file is ok by loading it
     let _ = Model::load_confidence(&conf_file_in)?;
-    fs::copy(
-        conf_file_in,
-        conf_file_out,
-    )?;
+    fs::copy(conf_file_in, conf_file_out)?;
 
     info!("Saved models at '{}'", save_path.display());
     info!("Finished");
@@ -360,9 +364,7 @@ mod tests {
         let temppath = tempf.into_temp_path();
         let modelpath = Path::new("./LanguageModels");
 
-        let model = ModelNgram::from_text(&modelpath,
-            OrderNgram::Quingram,
-            None).unwrap();
+        let model = ModelNgram::from_text(&modelpath, OrderNgram::Quingram, None).unwrap();
         // let path = Path::new("gramdict.ser");
         model.save(&temppath).unwrap();
         let model = ModelNgram::from_bin(&temppath).unwrap();
@@ -383,7 +385,9 @@ mod tests {
         expected.push((Lang::spa, 2.3922930f32));
         expected.push((Lang::vol, 5.1173210f32));
 
-        let mut probs = model.dic.get("ación")
+        let mut probs = model
+            .dic
+            .get("ación")
             .expect("Could not found the ngram in the model")
             .clone();
         // round to less decimals to be a lit permissive
@@ -396,6 +400,5 @@ mod tests {
             i.1 = (i.1 * round_to).round() / round_to;
         }
         assert_eq!(&probs, &expected);
-
     }
 }

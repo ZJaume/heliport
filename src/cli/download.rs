@@ -1,18 +1,18 @@
-use std::path::PathBuf;
 use std::env;
+use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::Args;
-use pyo3::prelude::*;
 use log::info;
+use pyo3::prelude::*;
 use target;
 
-use crate::python::module_path;
 use crate::download;
+use crate::python::module_path;
 
 #[derive(Args, Clone)]
 pub struct DownloadCmd {
-    #[arg(help="Path to download the model, defaults to the module path")]
+    #[arg(help = "Path to download the model, defaults to the module path")]
     path: Option<PathBuf>,
 }
 
@@ -25,7 +25,8 @@ impl DownloadCmd {
             env!("CARGO_PKG_NAME"),
             env!("CARGO_PKG_VERSION"),
             target::os(),
-            target::arch());
+            target::arch()
+        );
 
         download::download_file_and_extract(&url, download_path.to_str().unwrap()).unwrap();
         info!("Finished");

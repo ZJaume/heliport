@@ -1,12 +1,12 @@
 use std::fs::File;
-use std::io::{BufRead, BufReader, Write, BufWriter};
+use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::Path;
 use std::str::FromStr;
 
 use anyhow::{Context, Result};
 use counter::Counter;
 use lazy_static::lazy_static;
-use log::{info, warn, debug};
+use log::{debug, info, warn};
 use rayon::prelude::*;
 use regex::Regex;
 use shingles::AsShingles;
@@ -16,10 +16,9 @@ use crate::utils::RE_NON_ALPHA;
 
 use heliport_model::{Lang, OrderNgram};
 
-
 lazy_static! {
-    static ref RE_LANG_NAME: Regex = Regex::new(r"(\w{3,7}).train$")
-            .expect("Error compiling lang name from file regex");
+    static ref RE_LANG_NAME: Regex =
+        Regex::new(r"(\w{3,7}).train$").expect("Error compiling lang name from file regex");
 }
 
 // Count n-gram frequency of a given n-gram order in the text contained in the file
@@ -88,9 +87,12 @@ pub fn count_all_ngrams(input_file_path: &Path, output_dir: &Path, top_k: usize)
             // Obtain nggram frequencies
             let counts = count_ngrams(input_file_path, order)?;
             // create output file with the language code and ngram order as name
-            let output_file =
-                File::create(output_dir.join(format!("{}.{}.model", lang_string, order.to_string())))
-                    .with_context(|| "Could not create file")?;
+            let output_file = File::create(output_dir.join(format!(
+                "{}.{}.model",
+                lang_string,
+                order.to_string()
+            )))
+            .with_context(|| "Could not create file")?;
             let mut output_file = BufWriter::new(output_file);
             let total = counts.total::<usize>();
             debug!(
@@ -105,7 +107,8 @@ pub fn count_all_ngrams(input_file_path: &Path, output_dir: &Path, top_k: usize)
                 writeln!(&mut output_file, "{ngram}\t{count}")?;
             }
             Ok(())
-        }).collect();
+        })
+        .collect();
 
     for r in results {
         let _ = r?;

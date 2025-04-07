@@ -16,13 +16,15 @@ pub trait Abort<T> {
     fn or_abort(self, exit_code: i32) -> T;
 }
 
-impl<T, E: std::fmt::Display> Abort<T> for Result<T, E>
-{
+impl<T, E: std::fmt::Display> Abort<T> for Result<T, E> {
     fn or_abort(self, exit_code: i32) -> T {
         match self {
             Ok(v) => v,
             // Print the whole error context with :#
-            Err(e) => { error!("{e:#}"); exit(exit_code); },
+            Err(e) => {
+                error!("{e:#}");
+                exit(exit_code);
+            }
         }
     }
 }
@@ -55,7 +57,9 @@ const CJK_BLOCKS: [unicode_blocks::UnicodeBlock; 17] = [
 pub fn is_cjk_block(c: char) -> Result<bool, ()> {
     let charset = match unicode_blocks::find_unicode_block(c) {
         Some(charset) => charset,
-        None => { return Err(()); }
+        None => {
+            return Err(());
+        }
     };
 
     for i in 0..CJK_BLOCKS.len() {
