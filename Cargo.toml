@@ -33,12 +33,7 @@ ordered-float = "4.2"
 log = { version = "0.4" }
 env_logger = "0.10"
 strum = { version = "0.25", features = ["derive"] }
-pyo3 = { version = "0.24", features = ["anyhow"], optional = true }
-target = { version = "2.1.0", optional = true }
-tempfile = { version = "3", optional = true }
-reqwest = { version = "0.12", features = ["stream", "rustls-tls"], optional = true }
-tokio = { version = "1", features = ["io-util", "rt-multi-thread", "signal", "macros"], optional = true }
-futures-util = { version = "0.3", optional = true }
+pyo3 = { version = "0.24.1", features = ["anyhow"], optional = true }
 clap = { version = "4.5", features = ["derive", "wrap_help"], optional = true}
 anyhow = "1.0"
 rayon = "1.10"
@@ -53,5 +48,4 @@ test-log = "0.2.15"
 # Put log features in default, to allow crates using heli as a library, disable them
 default = ["cli", "log/max_level_debug", "log/release_max_level_debug"]
 cli = ["dep:clap"]
-download = ["dep:tokio", "dep:tempfile", "dep:reqwest", "dep:futures-util", "dep:target"]
 python = ["dep:pyo3"]

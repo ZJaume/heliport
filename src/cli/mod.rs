@@ -1,7 +1,5 @@
 mod binarize;
 mod create_models;
-#[cfg(feature = "download")]
-mod download;
 mod identify;
 
 use anyhow::Result;
@@ -11,8 +9,6 @@ use std::ffi::OsString;
 
 use self::binarize::BinarizeCmd;
 use self::create_models::CreateModelCmd;
-#[cfg(feature = "download")]
-use self::download::DownloadCmd;
 use self::identify::IdentifyCmd;
 #[cfg(feature = "python")]
 use crate::python::module_path;
@@ -28,10 +24,6 @@ pub struct Cli {
 
 #[derive(Subcommand, Clone)]
 enum Commands {
-    #[cfg(feature = "download")]
-    #[command(about = "Download heliport model from GitHub")]
-    #[cfg(feature = "download")]
-    Download(DownloadCmd),
     #[command(about = "Binarize heliport model")]
     Binarize(BinarizeCmd),
     #[command(about = "Identify languages of input text", visible_alias = "detect")]
@@ -64,8 +56,6 @@ where
     }
 
     match args.command {
-        #[cfg(feature = "download")]
-        Commands::Download(cmd) => cmd.cli(),
         Commands::Binarize(cmd) => cmd.cli(),
         Commands::Identify(cmd) => cmd.cli(),
         Commands::CreateModel(cmd) => cmd.cli(),
