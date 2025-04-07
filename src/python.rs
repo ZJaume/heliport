@@ -136,7 +136,7 @@ impl Identifier {
             .collect()
     }
 
-    /// Parallelized version of `identify`, which takes a batch of strings
+    /// Parallelized version of `identify`, which takes a list of strings
     /// and runs the identification in parallel.
     #[pyo3(name = "par_identify", signature = (texts, ignore_confidence=false))]
     fn py_par_identify(&mut self, texts: Vec<String>, ignore_confidence: bool) -> Vec<String> {
@@ -148,7 +148,7 @@ impl Identifier {
         preds_out
     }
 
-    /// Parallelized version of `identify_score`, which takes a batch of strings
+    /// Parallelized version of `identify_score`, which takes a list of strings
     /// and runs the identification in parallel.
     #[pyo3(name = "par_identify_with_score", signature = (texts, ignore_confidence=false))]
     fn py_par_identify_with_score(
