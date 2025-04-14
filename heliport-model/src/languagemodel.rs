@@ -226,10 +226,12 @@ impl Model {
                     parts.len()
                 );
             }
-            let lang = Lang::from_str(parts[0])
-                .with_context(|| "Loading confidence file, lang '{parts[0]}' does not exist")?;
-            let prob = f32::from_str(parts[1])
-                .with_context(|| "Loading confidence file: could not parse float '{parts[1]}'")?;
+            let lang = Lang::from_str(parts[0]).with_context(|| {
+                format!("Loading confidence file, lang '{}' does not exist", parts[0])
+            })?;
+            let prob = f32::from_str(parts[1]).with_context(|| {
+                format!("Loading confidence file: could not parse float '{}'", parts[1])
+            })?;
 
             loaded_langs.set(&lang, true);
             confidence.insert(lang, prob);
