@@ -5,7 +5,7 @@
 ![Supported-languages](https://img.shields.io/badge/supported_languages-220-green)
 
 
-A language identification tool which aims for both speed and accuracy, with support for [220 languages](LANGS.md).
+A language identification tool which aims for both speed and accuracy, with support for [220 languages](LANGS.md)(or [add your own languages!](docs/train.md)).
 
 This tool is an efficient [HeLI-OTS](https://aclanthology.org/2022.lrec-1.416/) port to Rust,
 achieving 25x speedups while having almost identical output.
