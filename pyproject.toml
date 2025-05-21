@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "heliport"
 description = "Fast and accurate language identifier"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 authors = [
     { "name" = "Jaume Zaragoza", "email" = "jzaragoza@prompsit.com" }
 ]
