@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.10.0
+### Added
+- Add new languages documentation.
+- Model singleton shared between Identifier instances for Python API.
+- Collapse macrolangs in top-k.
+
+### Changed
+- Python API methods refactor.
+- Updated dependencies.
+- Re-compile model if heliport-model subpackage changed.
+- Optional check all langs have threshold before loading.
+- Fix confidence file parsing on Windows.
+- Other small changes.
+
+### Removed
+- Download feature.
+- Python 3.8 support.
+
 ## v0.9.0
 ### Added
 - More Python identifier functions: `identify_with_score`, `identify_topk_with_score`, `par_identify`, `par_identify_with_score`.
