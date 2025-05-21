@@ -61,15 +61,17 @@ Options:
                                          >1 run multithreading [default: 0]
   -b, --batch-size <BATCH_SIZE>          Number of text segments to pre-load for parallel processing [default:
                                          100000]
-  -c, --ignore-confidence                Ignore confidence thresholds. Predictions under the thresholds will
-                                         not be labeled as 'und'
-  -s, --print-scores                     Print confidence score (higher is better) or raw score (lower is
-                                         better) in case '-c' is provided
-  -m, --model-dir <MODEL_DIR>            Model directory containing binarized model or plain text model.
-                                         Default is Python module path or './LanguageModels' if relevant
-                                         languages are requested
-  -l, --relevant-langs <RELEVANT_LANGS>  Load only relevant languages. Specify a comma-separated list of
-                                         language codes. Needs plain text model directory
+  -c, --ignore-confidence                Ignore confidence thresholds. Predictions under the thresholds will not be
+                                         labeled as 'und'
+  -s, --print-scores                     Print confidence score (higher is better) or raw score (lower is better) in
+                                         case '-c' is provided
+  -n, --not-strict                       Do not be strict when loading confidence thresholds (do not fail if one
+                                         language is missing)
+  -p, --precision <PRECISION>            Number of decimals precision when printing scores [default: 4]
+  -m, --model-dir <MODEL_DIR>            Model directory containing binarized model or plain text model. Default is
+                                         Python module path or './LanguageModels' if relevant languages are requested
+  -l, --relevant-langs <RELEVANT_LANGS>  Load only relevant languages. Specify a comma-separated list of language
+                                         codes. Needs plain text model directory
   -h, --help                             Print help
 ```
 
