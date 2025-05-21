@@ -28,7 +28,7 @@ enum Commands {
     Binarize(BinarizeCmd),
     #[command(about = "Identify languages of input text", visible_alias = "detect")]
     Identify(IdentifyCmd),
-    #[command(about = "Create heliport models")]
+    #[command(about = "Create heliport models", alias = "create-models")]
     CreateModel(CreateModelCmd),
 }
 
