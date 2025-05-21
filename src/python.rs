@@ -73,7 +73,7 @@ fn get_model_instance() -> Result<Arc<Model>, LoadModelError> {
         let Ok(modulepath) = module_path() else {
             return Err(LoadModelError::ModulePath);
         };
-        match Model::load(&modulepath, false, None) {
+        match Model::load(&modulepath, true, false, None) {
             Ok(model) => Ok(Arc::new(model)),
             Err(e) => Err(LoadModelError::LoadModel(String::from(format!("{}", e)))),
         }

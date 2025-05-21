@@ -36,5 +36,8 @@ fn main() -> Result<()> {
         "/heliport-model/src/lib.rs"
     ));
 
-    binarize(&save_path, &model_path)
+    // We set strict to false because when building the package there migth be language codes
+    // that still do not have confidence thresholds
+    // for example, in the middle of adding support for more languages
+    binarize(&save_path, &model_path, false)
 }

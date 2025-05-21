@@ -37,8 +37,9 @@ impl Identifier {
     const PENALTY_VALUE: f32 = 7.0;
     const MAX_NGRAM: usize = 6;
 
-    pub fn load(modelpath: &Path, langs: Option<Vec<Lang>>) -> Result<Self> {
-        Ok(Self::new(Arc::new(Model::load(modelpath, false, langs)?)))
+    pub fn load(modelpath: &Path, langs: Option<Vec<Lang>>, strict: Option<bool>) -> Result<Self> {
+        let s = strict.unwrap_or(true); // be strict by default
+        Ok(Self::new(Arc::new(Model::load(modelpath, s, false, langs)?)))
     }
 
     pub fn new(model: Arc<Model>) -> Self {
@@ -408,10 +409,11 @@ mod tests {
         let mut identifier = Identifier::load(
             &python::module_path().expect("Python module needs to be installed"),
             None,
+            None,
         )
         .expect("Could not load model, please run 'heliport bianrize' if you haven't");
 
-        let pred = identifier.identify(&String::from("Hola, ¿qué tal?"));
+        let pred = identifier.identify(&String::from("Hola, ¿qué tal?"), false);
         assert_eq!(pred.0, Lang::spa);
 
         for (text, expected) in INPUT_SENTS.iter().zip(EXPECTED_PREDS) {
@@ -425,6 +427,7 @@ mod tests {
         pyo3::prepare_freethreaded_python();
         let mut identifier = Identifier::load(
             &python::module_path().expect("Python module needs to be installed"),
+            None,
             None,
         )
         .expect("Could not load model, please run 'heliport bianrize' if you haven't");
@@ -448,6 +451,7 @@ mod tests {
         let mut identifier = Identifier::load(
             &python::module_path().expect("Python module needs to be installed"),
             None,
+            Some(true),
         )
         .expect("Could not load model, please run 'heliport bianrize' if you haven't");
 

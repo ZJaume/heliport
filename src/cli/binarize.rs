@@ -22,6 +22,10 @@ pub struct BinarizeCmd {
         help = "Force overwrite of output files if they already exist"
     )]
     force: bool,
+    #[arg(help = "Do not be strict when loading confidence thresholds (do not fail if one language is missing)",
+          short = 's',
+          long)]
+    not_strict: bool,
 }
 
 impl BinarizeCmd {
@@ -49,7 +53,7 @@ impl BinarizeCmd {
             exit(1);
         }
 
-        binarize(&save_path, &model_path).or_abort(1);
+        binarize(&save_path, &model_path, !self.not_strict).or_abort(1);
         Ok(())
     }
 }

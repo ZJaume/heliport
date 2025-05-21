@@ -44,6 +44,12 @@ pub struct IdentifyCmd {
         help = "Print confidence score (higher is better) or raw score (lower is better) in case '-c' is provided"
     )]
     print_scores: bool,
+    #[arg(help = "Do not be strict when loading confidence thresholds (do not fail if one language is missing)",
+          short = 'n',
+          long)]
+    not_strict: bool,
+    #[arg(long, short, default_value_t = 4, help = "Number of decimals precision when printing scores")]
+    precision: usize,
 
     #[arg(help = "Input file, default: stdin")]
     input_file: Option<PathBuf>,
@@ -145,7 +151,7 @@ impl IdentifyCmd {
 
         info!("Loading model");
         // Load identifier
-        let identifier = Identifier::load(&model_dir, relevant_langs).or_abort(1);
+        let identifier = Identifier::load(&model_dir, relevant_langs, Some(!self.not_strict)).or_abort(1);
         if self.ignore_confidence {
             info!("Disabled confidence thresholds");
         }
@@ -213,7 +219,7 @@ impl IdentifyCmd {
         W: Write,
     {
         if self.print_scores {
-            writeln!(writer, "{}\t{:.4}", pred.0, pred.1)
+            writeln!(writer, "{}\t{:.*}", pred.0, self.precision, pred.1)
         } else {
             writeln!(writer, "{}", pred.0)
         }

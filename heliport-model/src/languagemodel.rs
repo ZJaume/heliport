@@ -211,7 +211,7 @@ impl Model {
     pub const CONFIDENCE_FILE: &'static str = "confidenceThresholds";
 
     // Load confidence thresholds
-    pub fn load_confidence(conf_file_path: &Path) -> Result<LangScores> {
+    pub fn load_confidence(conf_file_path: &Path, strict: bool) -> Result<LangScores> {
         let mut confidence = LangScores::new();
         let confidence_file = fs::read_to_string(conf_file_path)
             .with_context(|| "Could not open confidenceThreshold file")?;
@@ -244,7 +244,7 @@ impl Model {
             if lang_col == Lang::und {
                 continue;
             }
-            if !loaded_langs.get(&lang_col) {
+            if strict && !loaded_langs.get(&lang_col) {
                 bail!(
                     "Language '{}' confidence threshold not found '{}' file",
                     lang_col,
@@ -257,7 +257,7 @@ impl Model {
         Ok(confidence)
     }
 
-    pub fn load(modelpath: &Path, from_text: bool, langs: Option<Vec<Lang>>) -> Result<Self> {
+    pub fn load(modelpath: &Path, strict: bool, from_text: bool, langs: Option<Vec<Lang>>) -> Result<Self> {
         debug!("Loading model from '{}", modelpath.display());
         // Run a separated thread to load each model
         let mut handles: Vec<thread::JoinHandle<_>> = Vec::new();
@@ -292,7 +292,7 @@ impl Model {
                 }));
             }
         }
-        let confidence_scores = Self::load_confidence(&modelpath.join(Self::CONFIDENCE_FILE))?;
+        let confidence_scores = Self::load_confidence(&modelpath.join(Self::CONFIDENCE_FILE), strict)?;
 
         Ok(Self {
             // remove first position because after removal, the vec is reindexed
@@ -320,7 +320,7 @@ impl Index<usize> for Model {
 }
 
 /// Binarize models and save in a path
-pub fn binarize(save_path: &Path, model_path: &Path) -> Result<()> {
+pub fn binarize(save_path: &Path, model_path: &Path, strict: bool) -> Result<()> {
     let orders: Vec<_> = OrderNgram::iter().collect();
 
     let results: Vec<Result<_>> = orders
@@ -346,7 +346,7 @@ pub fn binarize(save_path: &Path, model_path: &Path) -> Result<()> {
     let conf_file_in = model_path.join(Model::CONFIDENCE_FILE);
     let conf_file_out = save_path.join(Model::CONFIDENCE_FILE);
     // Check conf file is ok by loading it
-    let _ = Model::load_confidence(&conf_file_in)?;
+    let _ = Model::load_confidence(&conf_file_in, strict)?;
     fs::copy(conf_file_in, conf_file_out)?;
 
     info!("Saved models at '{}'", save_path.display());
