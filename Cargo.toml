@@ -33,7 +33,7 @@ ordered-float = "4.2"
 log = { version = "0.4" }
 env_logger = "0.10"
 strum = { version = "0.25", features = ["derive"] }
-pyo3 = { version = "0.24.1", features = ["anyhow"], optional = true }
+pyo3 = { version = "0.24.1", features = ["anyhow", "auto-initialize"], optional = true }
 clap = { version = "4.5", features = ["derive", "wrap_help"], optional = true}
 anyhow = "1.0"
 rayon = "1.10"
@@ -43,6 +43,8 @@ counter = "0.6.0"
 
 [dev-dependencies]
 test-log = "0.2.15"
+assert_cmd = "2"
+predicates = "3"
 
 [features]
 # Put log features in default, to allow crates using heli as a library, disable them

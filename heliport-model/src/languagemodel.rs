@@ -227,10 +227,16 @@ impl Model {
                 );
             }
             let lang = Lang::from_str(parts[0]).with_context(|| {
-                format!("Loading confidence file, lang '{}' does not exist", parts[0])
+                format!(
+                    "Loading confidence file, lang '{}' does not exist",
+                    parts[0]
+                )
             })?;
             let prob = f32::from_str(parts[1]).with_context(|| {
-                format!("Loading confidence file: could not parse float '{}'", parts[1])
+                format!(
+                    "Loading confidence file: could not parse float '{}'",
+                    parts[1]
+                )
             })?;
 
             loaded_langs.set(&lang, true);
@@ -257,7 +263,12 @@ impl Model {
         Ok(confidence)
     }
 
-    pub fn load(modelpath: &Path, strict: bool, from_text: bool, langs: Option<Vec<Lang>>) -> Result<Self> {
+    pub fn load(
+        modelpath: &Path,
+        strict: bool,
+        from_text: bool,
+        langs: Option<Vec<Lang>>,
+    ) -> Result<Self> {
         debug!("Loading model from '{}", modelpath.display());
         // Run a separated thread to load each model
         let mut handles: Vec<thread::JoinHandle<_>> = Vec::new();
@@ -292,7 +303,8 @@ impl Model {
                 }));
             }
         }
-        let confidence_scores = Self::load_confidence(&modelpath.join(Self::CONFIDENCE_FILE), strict)?;
+        let confidence_scores =
+            Self::load_confidence(&modelpath.join(Self::CONFIDENCE_FILE), strict)?;
 
         Ok(Self {
             // remove first position because after removal, the vec is reindexed
