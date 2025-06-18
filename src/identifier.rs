@@ -67,7 +67,7 @@ impl Identifier {
                 }
             }
 
-            winner_tuple =  (winner_lang, Some(min));
+            winner_tuple =  (winner_lang.macrolang(), Some(min));
         }
         else {
             //TODO do the actual ranking here, maybe btree is still the fastest way
