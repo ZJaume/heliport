@@ -97,7 +97,7 @@ impl ModelNgram {
 
         // Load each type of language model
         for lang in Lang::iter() {
-            if lang == Lang::und {
+            if lang.is_special() {
                 continue;
             }
             let lang_repr = lang.to_string().to_lowercase();
@@ -243,11 +243,12 @@ impl Model {
             confidence.insert(lang, prob);
         }
         confidence.insert(Lang::und, 0.0);
+        confidence.insert(Lang::zxx, 0.0);
 
         // Check all languages after collapsing have thresholds
         for lang in Lang::iter() {
             let lang_col = lang.collapse();
-            if lang_col == Lang::und {
+            if lang_col.is_special() {
                 continue;
             }
             if strict && !loaded_langs.get(&lang_col) {

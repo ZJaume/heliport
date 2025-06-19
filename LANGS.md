@@ -1,5 +1,7 @@
 # Supported Languages
-Special codes: `und` (Undetermined)
+Special codes:
+ - `und` (Undetermined): used when language could not be determined due to confidence thresholds.
+ - `zxx` (no linguistic content): the text does not contain any alphabetical, logographical or syllabic characters that can be used to identify the language.
 
 | Language name | ISO 639-3 code |
 | :------------ | :-------------: |
@@ -224,3 +226,4 @@ Special codes: `und` (Undetermined)
 | Yoruba | yor |
 | Nenets | yrk |
 | Zulu | zul |
+| No linguistic content | zxx |

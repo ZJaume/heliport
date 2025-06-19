@@ -310,7 +310,7 @@ impl Identifier {
         if self.score_langs(text) {
             self.pick_winner(ignore_confidence)
         } else {
-            (Lang::und, Self::PENALTY_VALUE)
+            (Lang::zxx, Self::PENALTY_VALUE)
         }
     }
 
@@ -323,7 +323,7 @@ impl Identifier {
         if self.score_langs(text) {
             self.rank_langs(k)
         } else {
-            Vec::from([(Lang::und, Self::PENALTY_VALUE)])
+            Vec::from([(Lang::zxx, Self::PENALTY_VALUE)])
         }
     }
 

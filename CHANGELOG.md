@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Added
+ - CLI tests.
+### Changed
+ - Sentences without alphabetical characters that cannot be identified are now labeled as `zxx` instead of `und`, which is now only used for predictions under confidence thresholds.
+
 ## v0.10.0
 ### Added
 - Add new languages documentation.

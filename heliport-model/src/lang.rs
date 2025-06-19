@@ -266,11 +266,16 @@ pub enum Lang {
     yrk,
     yor,
     zul,
+    zxx,
 }
 
 impl Lang {
     pub fn is_cjk(&self) -> bool {
         *self == Lang::jpn || *self == Lang::kor || *self == Lang::cmn || *self == Lang::cdo
+    }
+
+    pub fn is_special(&self) -> bool {
+        *self == Lang::zxx || *self == Lang::und
     }
 
     pub fn collapse(&self) -> Self {
