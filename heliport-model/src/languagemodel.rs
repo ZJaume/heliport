@@ -217,7 +217,7 @@ impl Model {
             .with_context(|| "Could not open confidenceThreshold file")?;
         let mut loaded_langs = LangBitmap::new();
 
-        for (i, line) in confidence_file.trim_end().split('\n').enumerate() {
+        for (i, line) in confidence_file.trim_end().lines().enumerate() {
             let parts: Vec<&str> = line.trim_end().split('\t').collect();
             // Check that the number of fields are correct and the language exists
             if parts.len() != 2 {
