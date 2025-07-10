@@ -377,7 +377,7 @@ mod tests {
     fn test_langs() {
         let tempf = NamedTempFile::new().unwrap();
         let temppath = tempf.into_temp_path();
-        let modelpath = Path::new("./LanguageModels");
+        let modelpath = Path::new("LanguageModels");
 
         let model = ModelNgram::from_text(&modelpath, OrderNgram::Quingram, None).unwrap();
         // let path = Path::new("gramdict.ser");

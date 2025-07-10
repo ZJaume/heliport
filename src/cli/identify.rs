@@ -121,7 +121,7 @@ impl IdentifyCmd {
             // are requested, default to .LanguageModels in the repo
             // otherwise use python module path
             if relevant_langs.is_some() {
-                model_dir = PathBuf::from("./LanguageModels");
+                model_dir = PathBuf::from("LanguageModels");
             } else {
                 #[cfg(feature = "python")]
                 {

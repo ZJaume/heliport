@@ -30,7 +30,7 @@ pub struct BinarizeCmd {
 
 impl BinarizeCmd {
     pub fn cli(self) -> Result<()> {
-        let model_path = self.input_dir.unwrap_or(PathBuf::from("./LanguageModels"));
+        let model_path = self.input_dir.unwrap_or(PathBuf::from("LanguageModels"));
 
         #[cfg(feature = "python")]
         let save_path = self.output_dir.unwrap_or(module_path().unwrap());
