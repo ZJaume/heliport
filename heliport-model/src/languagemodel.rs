@@ -93,7 +93,7 @@ impl ModelNgram {
         // Open languagelist for this model
         let lang_list = fs::read_to_string(model_dir.join("languagelist"))
             .with_context(|| format!("Could not find '{}/languagelist'", model_dir.display()))?;
-        let lang_list: HashSet<&str> = lang_list.split('\n').collect();
+        let lang_list: HashSet<&str> = lang_list.lines().collect();
 
         // Load each type of language model
         for lang in Lang::iter() {
