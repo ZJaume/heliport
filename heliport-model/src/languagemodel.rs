@@ -14,8 +14,8 @@ use rayon::prelude::*;
 use strum::{Display, EnumCount, IntoEnumIterator};
 use strum_macros::EnumIter;
 
-use wyhash2::WyHash;
-type MyHasher = BuildHasherDefault<WyHash>;
+use rapidhash::quality::RapidHasher;
+type MyHasher = BuildHasherDefault<RapidHasher>;
 
 use crate::lang::{Lang, LangBitmap, LangScores};
 

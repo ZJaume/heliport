@@ -334,6 +334,7 @@ dependencies = [
  "ordered-float",
  "predicates",
  "pyo3",
+ "rapidhash",
  "rayon",
  "regex",
  "shingles",
@@ -349,6 +350,7 @@ dependencies = [
  "anyhow",
  "bitcode",
  "log",
+ "rapidhash",
  "rayon",
  "strum",
  "strum_macros",
@@ -622,6 +624,12 @@ checksum = "0e4dccaaaf89514f546c693ddc140f729f958c247918a13380cccc6078391acc"
 dependencies = [
  "proc-macro2",
 ]
+
+[[package]]
+name = "rapidhash"
+version = "3.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "efee4b7317469c6c6e7fdeee3d094313af846a97678d6ed971d83a852d730083"
 
 [[package]]
 name = "rayon"
