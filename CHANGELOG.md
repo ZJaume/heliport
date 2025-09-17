@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - CLI tests.
 ### Changed
  - Sentences without alphabetical characters that cannot be identified are now labeled as `zxx` instead of `und`, which is now only used for predictions under confidence thresholds.
+ - Updated dependencies.
 
 ## v0.10.0
 ### Added
