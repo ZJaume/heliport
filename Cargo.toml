@@ -2,7 +2,7 @@
 name = "heliport"
 version = "0.10.0"
 edition = "2021"
-rust-version = "1.74"
+rust-version = "1.80"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
@@ -11,35 +11,43 @@ name = "heliport"
 # use cdylib to enable maturin linkage
 crate-type = ["lib", "cdylib"]
 
-[workspace]
-members = ["heliport-model"]
-
 [profile.release]
 lto = "thin"
 
+[workspace]
+members = ["heliport-model"]
+
+[workspace.dependencies]
+anyhow = "1.0"
+rayon = "1.10"
+log = "0.4"
+strum = { version = "0.27", features = ["derive"] }
+strum_macros = "0.27"
+env_logger = "0.11"
+
 [build-dependencies]
 heliport-model = { path = "heliport-model" }
-anyhow = "1.0"
-log = { version = "0.4" }
-strum = { version = "0.25", features = ["derive"] }
-env_logger = "0.10"
+anyhow = { workspace = true }
+log = { workspace = true }
+strum = { workspace = true }
+env_logger = { workspace = true }
 
 [dependencies]
 heliport-model = { path = "heliport-model" }
 regex = "1.10"
 unicode-blocks = "0.1.8"
 shingles = "0.1"
-ordered-float = "4.2"
-log = { version = "0.4" }
-env_logger = "0.10"
-strum = { version = "0.25", features = ["derive"] }
-pyo3 = { version = "0.24.1", features = ["anyhow"], optional = true }
+ordered-float = "5.0"
+log = { workspace = true }
+env_logger = { workspace = true }
+strum = { workspace = true }
+pyo3 = { version = "0.26", features = ["anyhow"], optional = true }
 clap = { version = "4.5", features = ["derive", "wrap_help"], optional = true}
-anyhow = "1.0"
-rayon = "1.10"
-itertools = "0.11"
+anyhow = { workspace = true }
+rayon = { workspace = true }
+itertools = "0.14"
 lazy_static = "1.5"
-counter = "0.6.0"
+counter = "0.7.0"
 
 [dev-dependencies]
 test-log = "0.2.15"

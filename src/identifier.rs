@@ -369,7 +369,7 @@ mod tests {
     use crate::identifier::Identifier;
     use crate::python;
     use heliport_model::lang::Lang;
-    use pyo3;
+    use pyo3::Python;
 
     const INPUT_SENTS: [&str;13] = [
         "L'aigua clara",
@@ -405,7 +405,7 @@ mod tests {
 
     #[test_log::test]
     fn test_output_langs() {
-        pyo3::prepare_freethreaded_python();
+        Python::initialize();
         let mut identifier = Identifier::load(
             &python::module_path().expect("Python module needs to be installed"),
             None,
@@ -424,7 +424,7 @@ mod tests {
 
     #[test_log::test]
     fn test_output_probs() {
-        pyo3::prepare_freethreaded_python();
+        Python::initialize();
         let mut identifier = Identifier::load(
             &python::module_path().expect("Python module needs to be installed"),
             None,
@@ -447,7 +447,7 @@ mod tests {
 
     #[test_log::test]
     fn test_confidence() {
-        pyo3::prepare_freethreaded_python();
+        Python::initialize();
         let mut identifier = Identifier::load(
             &python::module_path().expect("Python module needs to be installed"),
             None,

@@ -5,9 +5,9 @@ edition = "2021"
 
 [dependencies]
 bitcode = "0.6"
-log = { version = "0.4" }
-strum = { version = "0.25", features = ["derive"] }
-strum_macros = "0.25"
 wyhash2 = "0.2.1"
-anyhow = "1.0"
-rayon = "1.10"
+log = { workspace = true }
+strum = { workspace = true }
+strum_macros = { workspace = true }
+rayon = { workspace = true }
+anyhow = { workspace = true }

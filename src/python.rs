@@ -16,7 +16,7 @@ use heliport_model::{Lang, Model};
 // Call python interpreter and obtain python path of our module
 pub fn module_path() -> PyResult<PathBuf> {
     let mut path = PathBuf::new();
-    Python::with_gil(|py| {
+    Python::attach(|py| {
         // Instead of hardcoding the module name, obtain it from the crate name at compile time
         let module = PyModule::import(py, env!("CARGO_PKG_NAME"))?;
         let paths: Vec<String> = module.getattr("__path__")?.extract()?;
