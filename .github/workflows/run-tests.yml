@@ -20,10 +20,13 @@ jobs:
       id: setup-python
       with:
         python-version: 3.12
-    - uses: PyO3/maturin-action@v1
+    - run: python -m venv .venv
+    - name: Build wheels
+      uses: PyO3/maturin-action@v1
+      with:
+        command: develop
+        manylinux: auto
     - name: Run tests
       run: |
-        python -m venv .venv
-        . .venv/bin/activate
-        maturin develop
+        source .venv/bin/activate
         cargo test --all-features --verbose
