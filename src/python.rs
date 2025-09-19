@@ -170,6 +170,12 @@ impl Identifier {
         let lang = Lang::from_str(lang_str).context("Language code does not exist")?;
         Ok(self.get_confidence(lang))
     }
+
+    /// Obtain all confidence thresholds
+    #[pyo3(name = "get_confidence_all")]
+    fn py_get_confidence_all(&self) -> std::collections::HashMap<String,f32> {
+        self.get_confidence_all_string()
+    }
 }
 
 // #[pyclass(name = "Lang")]

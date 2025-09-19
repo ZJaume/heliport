@@ -1,8 +1,9 @@
 #![allow(non_camel_case_types)]
+use std::collections::HashMap;
 use std::fmt;
 use std::ops::Index;
 
-use strum::{Display, EnumCount, EnumString, FromRepr};
+use strum::{Display, EnumCount, EnumString, FromRepr, IntoEnumIterator};
 use strum_macros::EnumIter;
 
 use bitcode;
@@ -348,6 +349,20 @@ macro_rules! lang_scores {
                 for i in 0..$size {
                     self.inner[i] = 0.0;
                 }
+            }
+
+            // Return a map of variants string representations and values
+            pub fn to_map(&self) -> HashMap<$lang, f32> {
+                $lang::iter()
+                    .map(|lang| (lang, self.inner[lang as usize]))
+                    .collect()
+            }
+
+            // Return a map of variants string representations and values
+            pub fn to_string_map(&self) -> HashMap<String, f32> {
+                $lang::iter()
+                    .map(|lang| (lang.to_string(), self.inner[lang as usize]))
+                    .collect()
             }
         }
 

@@ -362,6 +362,16 @@ impl Identifier {
     pub fn get_confidence(&self, lang: Lang) -> f32 {
         self.model.confidence.get(lang)
     }
+
+    /// Obtain all confidence scores
+    pub fn get_confidence_all(&self) -> std::collections::HashMap<Lang, f32> {
+        self.model.confidence.to_map()
+    }
+
+    /// Obtain all confidence scores languages in string format
+    pub fn get_confidence_all_string(&self) -> std::collections::HashMap<String, f32> {
+        self.model.confidence.to_string_map()
+    }
 }
 
 #[cfg(test)]
