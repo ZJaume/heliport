@@ -3,7 +3,7 @@
 #
 #    maturin generate-ci github --platform linux
 #
-name: CI
+name: Build binaries
 
 on:
   push:
