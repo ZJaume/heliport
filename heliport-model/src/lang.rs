@@ -127,6 +127,7 @@ pub enum Lang {
     ita,
     izh,
     jpn,
+    kab,
     kac,
     kal,
     kan,
