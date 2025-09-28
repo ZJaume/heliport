@@ -92,6 +92,7 @@ Special codes:
 | Italian | ita |
 | Ingrian | izh |
 | Japanese | jpn |
+| Kabyle | kab |
 | Kachin | kac |
 | Kalaallisut | kal |
 | Kannada | kan |
