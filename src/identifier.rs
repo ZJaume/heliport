@@ -133,9 +133,9 @@ impl Identifier {
 
         if words.peek().is_none() {
             if self.use_confidence && self.number_top_langs == 1 {
-                return (Lang::unk, Some(Self::PENALTY_VALUE));
+                return (Lang::zxx_Zxxx, Some(Self::PENALTY_VALUE));
             } else {
-                return (Lang::unk, None);
+                return (Lang::zxx_Zxxx, None);
             }
         }
 
