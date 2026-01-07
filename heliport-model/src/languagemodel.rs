@@ -10,6 +10,7 @@ use std::thread;
 use anyhow::{bail, Context, Result};
 //use bitcode;
 use log::{debug, info, warn};
+use memmap2::{MmapMut, MmapOptions};
 use rayon::prelude::*;
 use rkyv::{self, deserialize, rancor};
 use strum::{Display, EnumCount, IntoEnumIterator};
@@ -179,12 +180,9 @@ impl ModelNgram {
 
     // Create a new struct reading from a binary file
     pub fn from_bin(p: &Path) -> Result<Self> {
-        let mut file = File::open(p)
+        let file = File::open(p)
             .with_context(|| format!("Could not open model file '{}'", p.display()))?;
-        let mut content = Vec::new();
-        let _ = file
-            .read_to_end(&mut content)
-            .with_context(|| format!("Error during reading file '{}'", p.display()))?;
+        let content = unsafe { MmapOptions::new().map(&file)? };
 
         // should find a way to propagate possible bitcode errors?
         //Ok(bitcode::decode(&content).with_context(|| "Could not deserialize model")?)
