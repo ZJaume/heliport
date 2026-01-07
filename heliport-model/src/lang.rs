@@ -5,11 +5,13 @@ use std::ops::Index;
 use strum::{Display, EnumCount, EnumString, FromRepr};
 use strum_macros::EnumIter;
 
-use bitcode;
+//use bitcode;
+use rkyv;
 
 #[derive(
-    bitcode::Encode,
-    bitcode::Decode,
+    rkyv::Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
     Debug,
     PartialEq,
     Eq,

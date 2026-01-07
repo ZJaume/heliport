@@ -8,9 +8,10 @@ use std::str::FromStr;
 use std::thread;
 
 use anyhow::{bail, Context, Result};
-use bitcode;
+//use bitcode;
 use log::{debug, info, warn};
 use rayon::prelude::*;
+use rkyv::{self, deserialize, rancor};
 use strum::{Display, EnumCount, IntoEnumIterator};
 use strum_macros::EnumIter;
 
@@ -20,8 +21,9 @@ type MyHasher = BuildHasherDefault<WyHash>;
 use crate::lang::{Lang, LangBitmap, LangScores};
 
 #[derive(
-    bitcode::Encode, bitcode::Decode, EnumIter, Display, EnumCount, Debug, PartialEq, Clone, Copy,
+    rkyv::Archive, rkyv::Deserialize, rkyv::Serialize, EnumIter, Display, EnumCount, Debug, PartialEq, Clone, Copy,
 )]
+#[rkyv(compare(PartialEq), derive(Debug))]
 #[strum(serialize_all = "lowercase")]
 pub enum OrderNgram {
     Word,
@@ -33,7 +35,7 @@ pub enum OrderNgram {
     Hexagram,
 }
 
-#[derive(bitcode::Encode, bitcode::Decode, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Deserialize, rkyv::Serialize, Debug, PartialEq)]
 pub struct ModelNgram {
     pub dic: HashMap<String, Vec<(Lang, f32)>, MyHasher>,
     pub model_type: OrderNgram,
@@ -185,7 +187,9 @@ impl ModelNgram {
             .with_context(|| format!("Error during reading file '{}'", p.display()))?;
 
         // should find a way to propagate possible bitcode errors?
-        Ok(bitcode::decode(&content).with_context(|| "Could not deserialize model")?)
+        //Ok(bitcode::decode(&content).with_context(|| "Could not deserialize model")?)
+        let archived = unsafe { rkyv::access_unchecked::<ArchivedModelNgram>(&content[..]) };
+        Ok(deserialize::<Self, rancor::Error>(archived).with_context(|| "Could not deserialize model")?)
     }
 
     // Save the struct in binary format
@@ -195,7 +199,7 @@ impl ModelNgram {
         let mut file = File::create(p)
             .with_context(|| format!("Could not open file for saving model: {}", p.display()))?;
 
-        let serialized = bitcode::encode(&self);
+        let serialized = rkyv::to_bytes::<rancor::Error>(&self).unwrap();
         // Write serialized bytes to the compressor
         file.write_all(&serialized)
             .with_context(|| format!("Error during writing file '{}'", p.display()))

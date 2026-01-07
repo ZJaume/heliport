@@ -4,10 +4,10 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
-bitcode = "0.6"
 log = { version = "0.4" }
 strum = { version = "0.25", features = ["derive"] }
 strum_macros = "0.25"
 wyhash2 = "0.2.1"
 anyhow = "1.0"
 rayon = "1.10"
+rkyv = "0.8.13"
