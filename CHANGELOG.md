@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## v0.11.1
+### Added
+- Enable artifact attestation.
+
+### Changed
+- Update Github Actions images.
+- Use uv to publish (maturin deprecated itself in favor of uv).
+
 ## v0.11.0
 ### Added
  - CLI tests.
