@@ -5,6 +5,7 @@ build-backend = "maturin"
 [project]
 name = "heliport"
 description = "Fast and accurate language identifier"
+readme = "README.md"
 requires-python = ">=3.9"
 authors = [
     { "name" = "Jaume Zaragoza", "email" = "jzaragoza@prompsit.com" }

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## v0.11.2
+### Fixed
+- Restore README in Python metadata
+
 ## v0.11.1
 ### Added
 - Enable artifact attestation.
