@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## v1.0.1
+### Changed
+- No more pre-built packages for MacOS Intel and Windows.
+- Removed support for Python 3.10.
+
 ## v1.0.0
 ### Changed
 - v0.* versions no more, this has been stable for quite some time.
