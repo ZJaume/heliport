@@ -16,7 +16,7 @@ use crate::utils::{is_cjk_block, RE_NON_ALPHA};
 use heliport_model::Model;
 use heliport_model::{Lang, LangBitmap, LangScores};
 
-#[cfg_attr(feature = "python", pyclass)]
+#[cfg_attr(feature = "python", pyclass(from_py_object))]
 pub struct Identifier {
     model: Arc<Model>,
     lang_scored: LangBitmap,
