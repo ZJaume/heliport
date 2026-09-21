@@ -62,19 +62,19 @@ jobs:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter
           sccache: 'true'
-      - name: Upload wheels
-        uses: actions/upload-artifact@v6
-        with:
-          name: wheels-windows-${{ matrix.platform.target }}
-          path: dist
+      # - name: Upload wheels
+      #   uses: actions/upload-artifact@v6
+      #   with:
+      #     name: wheels-windows-${{ matrix.platform.target }}
+      #     path: dist
 
   macos:
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
         platform:
-          - runner: macos-15-intel
-            target: x86_64
+          # - runner: macos-15-intel
+          #   target: x86_64
           - runner: macos-latest
             target: aarch64
     steps:
